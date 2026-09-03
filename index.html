@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Учет простоев</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; }
+        .tab-active { background-color: #2563eb; color: white; }
+        .tab-inactive { background-color: #f3f4f6; color: #374151; }
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #2563eb;
+            border-radius: 50%;
+            width: 30px; height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .admin-section { border-bottom: 1px solid #e5e7eb; padding-bottom: 1rem; margin-bottom: 1rem; }
+        .admin-section:last-child { border-bottom: none; }
+        .time-block {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .time-select {
+            width: 60px;
+            padding: 6px 4px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            background: white;
+        }
+        .custom-select-display {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+        .custom-select-display:hover {
+            border-color: #2563eb;
+        }
+        .custom-select-display.selected {
+            background: #eff6ff;
+            border-color: #2563eb;
+        }
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: flex-end;
+            z-index: 100;
+        }
+        .modal-content {
+            background: white;
+            width: 100%;
+            max-height: 80vh;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+        }
+        .modal-footer {
+            padding: 12px 16px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .option-item {
+            padding: 12px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .option-item:hover {
+            background: #f3f4f6;
+        }
+        .option-item.selected {
+            background: #eff6ff;
+            color: #2563eb;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 h-screen flex flex-col">
+
+    <!-- ЭКРАН ЗАГРУЗКИ -->
+    <div id="loading-screen" class="fixed inset-0 bg-gradient-to-br from-blue-600 to-blue-800 flex flex-col items-center justify-center z-50 p-6">
+        <div class="text-5xl mb-4">🔧</div>
+        <div class="loader mb-4"></div>
+        <p class="text-white text-sm">Проверка входа...</p>
+    </div>
+
+    <!-- ЭКРАН АВТОРИЗАЦИИ -->
+    <div id="auth-screen" class="hidden fixed inset-0 bg-gradient-to-br from-blue-600 to-blue-800 flex flex-col z-50">
+        <div class="flex justify-end p-4">
+            <button onclick="openAdminLoginModal()" class="text-white text-2xl hover:text-blue-200">⚙️</button>
+        </div>
+        <div class="flex-1 flex items-center justify-center p-6">
+            <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm">
+                <div class="text-center mb-6">
+                    <div class="text-5xl mb-3">🔧</div>
+                    <h1 class="text-2xl font-bold text-gray-800">Учет простоев</h1>
+                    <p class="text-sm text-gray-500 mt-2">Введите ваше имя для входа</p>
+                </div>
+                <input type="text" id="auth-name" placeholder="Ваше имя" 
+                       class="w-full p-3 border-2 border-gray-200 rounded-lg text-center text-lg focus:border-blue-500 focus:outline-none"
+                       onkeypress="if(event.key==='Enter') login()">
+                <button onclick="login()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg mt-4 shadow-md">
+                    Войти
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО ВХОДА АДМИНИСТРАТОРА -->
+    <div id="admin-login-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-sm">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold">Вход администратора</h3>
+                <button onclick="closeAdminLoginModal()" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+            </div>
+            <input type="email" id="admin-email" placeholder="Email администратора" class="w-full p-2 border rounded text-sm mb-3">
+            <input type="password" id="admin-password" placeholder="Пароль" class="w-full p-2 border rounded text-sm mb-3"
+                   onkeypress="if(event.key==='Enter') adminLogin()">
+            <button onclick="adminLogin()" class="w-full bg-blue-600 text-white font-bold py-2 rounded text-sm">Войти</button>
+            <p id="admin-login-error" class="text-red-500 text-xs mt-2 hidden"></p>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО АДМИН-ПАНЕЛИ -->
+    <div id="admin-panel-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-bold">Администрирование</h3>
+                <button onclick="closeAdminPanel()" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
+            </div>
+            <div id="admin-content">
+                
+                <!-- Выгрузка таблицы -->
+                <div class="admin-section">
+                    <button onclick="exportTable()" id="export-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-md flex items-center justify-center gap-2">
+                        <span>📧</span>
+                        <span>Выгрузить таблицу на почту</span>
+                    </button>
+                    <p id="export-status" class="text-xs text-gray-500 text-center mt-2 hidden"></p>
+                </div>
+
+                <!-- Сотрудники -->
+                <div class="admin-section">
+                    <h4 class="font-bold text-gray-800 mb-3">👥 Сотрудники</h4>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="admin-new-user" placeholder="Имя сотрудника" class="flex-1 p-2 border rounded text-sm">
+                        <button onclick="addUser()" class="bg-green-500 text-white px-4 rounded font-bold text-sm">+</button>
+                    </div>
+                    <div id="admin-users-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                </div>
+
+                <!-- Цеха -->
+                <div class="admin-section">
+                    <h4 class="font-bold text-gray-800 mb-3">🏭 Цеха</h4>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="admin-new-shop" placeholder="Название цеха" class="flex-1 p-2 border rounded text-sm">
+                        <button onclick="addDropdownValue('shop')" class="bg-blue-500 text-white px-4 rounded font-bold text-sm">+</button>
+                    </div>
+                    <div id="admin-shops-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
+                </div>
+
+                <!-- Оборудование -->
+                <div class="admin-section">
+                    <h4 class="font-bold text-gray-800 mb-3">🔧 Оборудование</h4>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="admin-new-equipment" placeholder="Название оборудования" class="flex-1 p-2 border rounded text-sm">
+                        <button onclick="addDropdownValue('equipment')" class="bg-blue-500 text-white px-4 rounded font-bold text-sm">+</button>
+                    </div>
+                    <div id="admin-equipment-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
+                </div>
+
+                <button onclick="adminLogout()" class="w-full bg-red-500 text-white font-bold py-2 rounded text-sm mt-4">
+                    Выйти из аккаунта администратора
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ -->
+    <div id="main-app" class="hidden flex-col h-screen">
+        
+        <header class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
+            <div class="text-xl font-bold">Учет простоев</div>
+            <button onclick="logout()" class="text-xs bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded">
+                👤 <span id="current-user-name">Имя</span> ↩
+            </button>
+        </header>
+
+        <div class="flex border-b border-gray-300 bg-white">
+            <button id="tab-downtime-form" onclick="switchTab('downtime-form')" class="flex-1 py-3 text-center font-semibold tab-active text-sm">🔧 Простои оборудования</button>
+            <button id="tab-downtime-view" onclick="switchTab('downtime-view')" class="flex-1 py-3 text-center font-semibold tab-inactive text-sm">📊 Просмотр простоев</button>
+        </div>
+
+        <div class="flex-1 overflow-hidden flex flex-col">
+
+            <!-- ВКЛАДКА: ФОРМА ПРОСТОЕВ -->
+            <div id="content-downtime-form" class="flex-1 flex flex-col">
+                <div class="flex-1 overflow-y-auto p-4">
+                    <div class="bg-white p-4 rounded-lg shadow-md space-y-4">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4">Зарегистрировать простой</h2>
+
+                        <!-- Цех -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Цех</label>
+                            <div id="shop-select-display" class="custom-select-display" onclick="openCustomSelect('shop')">
+                                <span id="shop-select-text">Выберите цех...</span>
+                                <span>▼</span>
+                            </div>
+                        </div>
+
+                        <!-- Оборудование -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Оборудование</label>
+                            <div id="equipment-select-display" class="custom-select-display" onclick="openCustomSelect('equipment')">
+                                <span id="equipment-select-text">Выберите оборудование...</span>
+                                <span>▼</span>
+                            </div>
+                        </div>
+
+                        <!-- Время простоя: с ... по ... -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Время простоя</label>
+                            <div class="flex gap-3">
+                                <!-- Блок "С" -->
+                                <div class="time-block flex-1">
+                                    <div class="text-xs font-bold text-gray-500 mb-2 text-center">С</div>
+                                    <div class="flex items-center justify-center gap-1">
+                                        <div id="start-hour-display" class="time-select" onclick="openCustomSelect('start-hour')">08</div>
+                                        <span class="text-lg font-bold text-gray-600">:</span>
+                                        <div id="start-min-display" class="time-select" onclick="openCustomSelect('start-min')">00</div>
+                                    </div>
+                                    <div class="flex justify-between text-xs text-gray-400 mt-1 px-1">
+                                        <span>ч</span><span>мин</span>
+                                    </div>
+                                </div>
+                                <!-- Блок "ПО" -->
+                                <div class="time-block flex-1">
+                                    <div class="text-xs font-bold text-gray-500 mb-2 text-center">ПО</div>
+                                    <div class="flex items-center justify-center gap-1">
+                                        <div id="end-hour-display" class="time-select" onclick="openCustomSelect('end-hour')">08</div>
+                                        <span class="text-lg font-bold text-gray-600">:</span>
+                                        <div id="end-min-display" class="time-select" onclick="openCustomSelect('end-min')">30</div>
+                                    </div>
+                                    <div class="flex justify-between text-xs text-gray-400 mt-1 px-1">
+                                        <span>ч</span><span>мин</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Подсказка длительности -->
+                            <div id="duration-hint" class="text-center text-sm font-semibold text-blue-600 mt-2"></div>
+                        </div>
+
+                        <!-- Причина простоя -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Причина простоя</label>
+                            <textarea id="input-reason" rows="4" placeholder="Опишите причину простоя..." class="w-full p-2 border rounded text-sm"></textarea>
+                        </div>
+
+                        <button onclick="submitDowntime()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg shadow-md">
+                            ✓ Опубликовать
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ВКЛАДКА: ПРОСМОТР ПРОСТОЕВ -->
+            <div id="content-downtime-view" class="flex-1 flex flex-col hidden">
+                <div class="flex-1 overflow-auto p-3">
+                    <table class="w-full text-sm text-left bg-white shadow rounded-lg">
+                        <thead class="bg-gray-200 text-gray-700 uppercase text-xs">
+                            <tr>
+                                <th class="p-2">Дата</th>
+                                <th class="p-2">Автор</th>
+                                <th class="p-2">Цех</th>
+                                <th class="p-2">Оборудование</th>
+                                <th class="p-2">Период</th>
+                                <th class="p-2">Длительность</th>
+                                <th class="p-2">Причина</th>
+                            </tr>
+                        </thead>
+                        <tbody id="downtime-table-body" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- МОДАЛЬНОЕ ОКНО КАСТОМНОГО ВЫПАДАЮЩЕГО СПИСКА -->
+    <div id="custom-select-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button onclick="closeCustomSelect()" class="text-blue-600 font-semibold">← Назад</button>
+                <h3 id="custom-select-title" class="font-bold text-gray-800">Выберите значение</h3>
+                <div class="w-12"></div>
+            </div>
+            <div id="custom-select-body" class="modal-body"></div>
+            <div class="modal-footer">
+                <button onclick="confirmCustomSelect()" id="custom-select-confirm" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg">
+                    ✓ Готово
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- НАСТРОЙКИ FIREBASE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAVW0vM_-G3KexwW2HbdKooRO6FkbNyyYM",
+            authDomain: "evroblok-downtime.firebaseapp.com",
+            databaseURL: "https://evroblok-downtime-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "evroblok-downtime",
+            storageBucket: "evroblok-downtime.firebasestorage.app",
+            messagingSenderId: "1045156288948",
+            appId: "1:1045156288948:web:d5ed9efbc04050d36a3ae1"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const auth = firebase.auth();
+
+        // --- НАСТРОЙКИ EMAILJS ---
+        const EMAILJS_PUBLIC_KEY = "FFpohVBrFsy2iqMhJ";
+        const EMAILJS_SERVICE_ID = "service_d2ceu5r";
+        const EMAILJS_TEMPLATE_ID = "template_vcg81qi";
+        const EXPORT_EMAIL = "evro.blok@bk.ru";
+        emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+
+        // --- UID АДМИНИСТРАТОРА ---
+        const ADMIN_UID = "0vrsntQSoANT0r6fBpUcb1h1aau1";
+
+        // --- ПЕРЕМЕННЫЕ ---
+        let currentUser = '';
+        let cachedRecords = [];
+        let currentSelectType = '';
+        let currentSelectValue = '';
+        let tempSelectValue = '';
+
+        // Данные для списков
+        let shopOptions = [];
+        let equipmentOptions = [];
+        let hourOptions = [];
+        let minuteOptions = [];
+
+        // Выбранные значения
+        let selectedShop = '';
+        let selectedEquipment = '';
+        let selectedStartHour = 8;
+        let selectedStartMin = 0;
+        let selectedEndHour = 8;
+        let selectedEndMin = 30;
+
+        // --- ИНИЦИАЛИЗАЦИЯ СПИСКОВ ВРЕМЕНИ ---
+        function initTimeOptions() {
+            for (let h = 0; h < 24; h++) {
+                hourOptions.push({ value: h, label: String(h).padStart(2, '0') });
+            }
+            for (let m = 0; m < 60; m += 5) {
+                minuteOptions.push({ value: m, label: String(m).padStart(2, '0') });
+            }
+        }
+
+        // --- КАСТОМНЫЕ ВЫПАДАЮЩИЕ СПИСКИ ---
+        function openCustomSelect(type) {
+            currentSelectType = type;
+            const modal = document.getElementById('custom-select-modal');
+            const title = document.getElementById('custom-select-title');
+            const body = document.getElementById('custom-select-body');
+
+            body.innerHTML = '';
+
+            if (type === 'shop') {
+                title.textContent = 'Выберите цех';
+                tempSelectValue = selectedShop;
+                shopOptions.forEach(opt => {
+                    const item = createOptionItem(opt, opt === selectedShop);
+                    body.appendChild(item);
+                });
+            } else if (type === 'equipment') {
+                title.textContent = 'Выберите оборудование';
+                tempSelectValue = selectedEquipment;
+                equipmentOptions.forEach(opt => {
+                    const item = createOptionItem(opt, opt === selectedEquipment);
+                    body.appendChild(item);
+                });
+            } else if (type === 'start-hour') {
+                title.textContent = 'Часы начала';
+                tempSelectValue = selectedStartHour;
+                hourOptions.forEach(opt => {
+                    const item = createOptionItem(opt.label, opt.value === selectedStartHour);
+                    item.onclick = () => selectTempValue(opt.value, item);
+                    body.appendChild(item);
+                });
+            } else if (type === 'start-min') {
+                title.textContent = 'Минуты начала';
+                tempSelectValue = selectedStartMin;
+                minuteOptions.forEach(opt => {
+                    const item = createOptionItem(opt.label, opt.value === selectedStartMin);
+                    item.onclick = () => selectTempValue(opt.value, item);
+                    body.appendChild(item);
+                });
+            } else if (type === 'end-hour') {
+                title.textContent = 'Часы окончания';
+                tempSelectValue = selectedEndHour;
+                hourOptions.forEach(opt => {
+                    const item = createOptionItem(opt.label, opt.value === selectedEndHour);
+                    item.onclick = () => selectTempValue(opt.value, item);
+                    body.appendChild(item);
+                });
+            } else if (type === 'end-min') {
+                title.textContent = 'Минуты окончания';
+                tempSelectValue = selectedEndMin;
+                minuteOptions.forEach(opt => {
+                    const item = createOptionItem(opt.label, opt.value === selectedEndMin);
+                    item.onclick = () => selectTempValue(opt.value, item);
+                    body.appendChild(item);
+                });
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function createOptionItem(value, isSelected) {
+            const item = document.createElement('div');
+            item.className = 'option-item' + (isSelected ? ' selected' : '');
+            item.textContent = value;
+            item.onclick = () => selectTempValue(value, item);
+            return item;
+        }
+
+        function selectTempValue(value, element) {
+            tempSelectValue = value;
+            const body = document.getElementById('custom-select-body');
+            body.querySelectorAll('.option-item').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+        }
+
+        function confirmCustomSelect() {
+            if (currentSelectType === 'shop') {
+                selectedShop = tempSelectValue;
+                document.getElementById('shop-select-text').textContent = selectedShop || 'Выберите цех...';
+                document.getElementById('shop-select-display').classList.toggle('selected', !!selectedShop);
+            } else if (currentSelectType === 'equipment') {
+                selectedEquipment = tempSelectValue;
+                document.getElementById('equipment-select-text').textContent = selectedEquipment || 'Выберите оборудование...';
+                document.getElementById('equipment-select-display').classList.toggle('selected', !!selectedEquipment);
+            } else if (currentSelectType === 'start-hour') {
+                selectedStartHour = tempSelectValue;
+                document.getElementById('start-hour-display').textContent = String(tempSelectValue).padStart(2, '0');
+            } else if (currentSelectType === 'start-min') {
+                selectedStartMin = tempSelectValue;
+                document.getElementById('start-min-display').textContent = String(tempSelectValue).padStart(2, '0');
+            } else if (currentSelectType === 'end-hour') {
+                selectedEndHour = tempSelectValue;
+                document.getElementById('end-hour-display').textContent = String(tempSelectValue).padStart(2, '0');
+            } else if (currentSelectType === 'end-min') {
+                selectedEndMin = tempSelectValue;
+                document.getElementById('end-min-display').textContent = String(tempSelectValue).padStart(2, '0');
+            }
+
+            updateDurationHint();
+            closeCustomSelect();
+        }
+
+        function closeCustomSelect() {
+            document.getElementById('custom-select-modal').classList.add('hidden');
+            currentSelectType = '';
+            tempSelectValue = '';
+        }
+
+        // --- ПОДСКАЗКА ДЛИТЕЛЬНОСТИ ---
+        function updateDurationHint() {
+            const durationText = calcDurationText(selectedStartHour, selectedStartMin, selectedEndHour, selectedEndMin);
+            const hint = document.getElementById('duration-hint');
+
+            if (durationText) {
+                hint.textContent = 'Длительность: ' + durationText;
+                hint.className = 'text-center text-sm font-semibold text-blue-600 mt-2';
+            } else {
+                hint.textContent = '⚠️ Время начала и окончания совпадают';
+                hint.className = 'text-center text-sm font-semibold text-red-500 mt-2';
+            }
+        }
+
+        // --- РАСЧЁТ ДЛИТЕЛЬНОСТИ ---
+        function calcDurationText(sh, sm, eh, em) {
+            let startTotal = sh * 60 + sm;
+            let endTotal = eh * 60 + em;
+
+            if (endTotal <= startTotal) {
+                endTotal += 24 * 60;
+            }
+
+            const diff = endTotal - startTotal;
+            if (diff === 0 || diff === 24 * 60) return null;
+
+            const hours = Math.floor(diff / 60);
+            const minutes = diff % 60;
+
+            let parts = [];
+            if (hours > 0) parts.push(hours + ' ч');
+            if (minutes > 0) parts.push(minutes + ' мин');
+
+            return parts.join(' ') || null;
+        }
+
+        // --- ФОРМАТИРОВАНИЕ ВРЕМЕНИ ---
+        function formatTime(h, m) {
+            return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+        }
+
+        // --- ЭКРАНЫ ---
+        function showLoadingScreen() {
+            document.getElementById('loading-screen').classList.remove('hidden');
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.add('hidden');
+            document.getElementById('main-app').style.display = 'none';
+        }
+
+        function showAuthScreen() {
+            document.getElementById('loading-screen').classList.add('hidden');
+            document.getElementById('auth-screen').classList.remove('hidden');
+            document.getElementById('main-app').classList.add('hidden');
+            document.getElementById('main-app').style.display = 'none';
+        }
+
+        function showMainApp() {
+            document.getElementById('loading-screen').classList.add('hidden');
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            document.getElementById('main-app').style.display = 'flex';
+            document.getElementById('current-user-name').textContent = currentUser;
+        }
+
+        // --- АВТОРИЗАЦИЯ ---
+        function checkAutoLogin() {
+            const savedUser = localStorage.getItem('app_user_name');
+            if (!savedUser) { showAuthScreen(); return; }
+
+            db.ref('users/' + savedUser).once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    currentUser = savedUser;
+                    showMainApp();
+                } else {
+                    localStorage.removeItem('app_user_name');
+                    showAuthScreen();
+                }
+            });
+        }
+
+        function login() {
+            const name = document.getElementById('auth-name').value.trim();
+            if (!name) { alert('Пожалуйста, введите ваше имя!'); return; }
+
+            db.ref('users/' + name).once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    currentUser = name;
+                    localStorage.setItem('app_user_name', name);
+                    showMainApp();
+                } else {
+                    alert('Сотрудник "' + name + '" не найден в базе.\nОбратитесь к администратору для добавления.');
+                }
+            });
+        }
+
+        function logout() {
+            if (confirm('Выйти из аккаунта?')) {
+                localStorage.removeItem('app_user_name');
+                currentUser = '';
+                document.getElementById('auth-name').value = '';
+                showAuthScreen();
+            }
+        }
+
+        // --- ВХОД АДМИНИСТРАТОРА ---
+        function openAdminLoginModal() {
+            document.getElementById('admin-login-modal').classList.remove('hidden');
+            document.getElementById('admin-email').value = '';
+            document.getElementById('admin-password').value = '';
+            document.getElementById('admin-login-error').classList.add('hidden');
+        }
+
+        function closeAdminLoginModal() {
+            document.getElementById('admin-login-modal').classList.add('hidden');
+        }
+
+        function adminLogin() {
+            const email = document.getElementById('admin-email').value.trim();
+            const password = document.getElementById('admin-password').value;
+            const errorEl = document.getElementById('admin-login-error');
+            errorEl.classList.add('hidden');
+
+            if (!email || !password) {
+                errorEl.textContent = 'Заполните все поля!';
+                errorEl.classList.remove('hidden');
+                return;
+            }
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    if (userCredential.user.uid !== ADMIN_UID) {
+                        auth.signOut();
+                        errorEl.textContent = 'Этот аккаунт не является администратором!';
+                        errorEl.classList.remove('hidden');
+                        return;
+                    }
+                    closeAdminLoginModal();
+                    openAdminPanel();
+                })
+                .catch((error) => {
+                    let message = 'Ошибка входа';
+                    if (['auth/user-not-found', 'auth/wrong-password', 'auth/invalid-credential'].includes(error.code)) {
+                        message = 'Неверный email или пароль';
+                    } else if (error.code === 'auth/too-many-requests') {
+                        message = 'Слишком много попыток. Попробуйте позже';
+                    }
+                    errorEl.textContent = message;
+                    errorEl.classList.remove('hidden');
+                });
+        }
+
+        function adminLogout() {
+            if (confirm('Выйти из аккаунта администратора?')) {
+                auth.signOut().then(() => closeAdminPanel());
+            }
+        }
+
+        // --- АДМИН-ПАНЕЛЬ ---
+        function openAdminPanel() {
+            const user = auth.currentUser;
+            if (!user || user.uid !== ADMIN_UID) { alert('Доступ запрещён!'); return; }
+            document.getElementById('admin-panel-modal').classList.remove('hidden');
+            loadAllAdminData();
+        }
+
+        function closeAdminPanel() {
+            document.getElementById('admin-panel-modal').classList.add('hidden');
+        }
+
+        function loadAllAdminData() {
+            loadUsersList();
+            loadDropdownList('shop', 'admin-shops-list');
+            loadDropdownList('equipment', 'admin-equipment-list');
+        }
+
+        // --- ВЫГРУЗКА ТАБЛИЦЫ ---
+        function exportTable() {
+            const btn = document.getElementById('export-btn');
+            const status = document.getElementById('export-status');
+
+            if (cachedRecords.length === 0) { alert('Нет записей для выгрузки!'); return; }
+            if (!confirm('Отправить таблицу (' + cachedRecords.length + ' записей) на ' + EXPORT_EMAIL + '?')) return;
+
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳</span><span>Отправка...</span>';
+            status.classList.add('hidden');
+
+            let tableHtml = '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:Arial;font-size:13px;">';
+            tableHtml += '<thead style="background:#2563eb;color:white;">';
+            tableHtml += '<tr><th>Дата</th><th>Автор</th><th>Цех</th><th>Оборудование</th><th>Период</th><th>Длительность</th><th>Причина</th></tr>';
+            tableHtml += '</thead><tbody>';
+
+            cachedRecords.forEach((r, i) => {
+                const bg = i % 2 === 0 ? '#fff' : '#f3f4f6';
+                const period = (r.startTime || '') + ' — ' + (r.endTime || '');
+                const dur = calcDurationText(r.startHour, r.startMin, r.endHour, r.endMin) || '—';
+                tableHtml += `<tr style="background:${bg};">`;
+                tableHtml += `<td>${r.date || ''}</td>`;
+                tableHtml += `<td>${r.author || '—'}</td>`;
+                tableHtml += `<td>${r.shop || ''}</td>`;
+                tableHtml += `<td>${r.equipment || ''}</td>`;
+                tableHtml += `<td>${period}</td>`;
+                tableHtml += `<td><b>${dur}</b></td>`;
+                tableHtml += `<td>${r.reason || ''}</td>`;
+                tableHtml += '</tr>';
+            });
+            tableHtml += '</tbody></table>';
+
+            emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+                to_email: EXPORT_EMAIL,
+                from_name: currentUser || 'Администратор',
+                date: new Date().toLocaleString('ru-RU'),
+                count: cachedRecords.length,
+                table_html: tableHtml
+            }).then(() => {
+                status.textContent = '✓ Письмо отправлено на ' + EXPORT_EMAIL;
+                status.className = 'text-xs text-green-600 text-center mt-2';
+                status.classList.remove('hidden');
+                btn.innerHTML = '<span>📧</span><span>Выгрузить таблицу на почту</span>';
+                btn.disabled = false;
+            }).catch((error) => {
+                status.textContent = '✗ Ошибка: ' + (error.text || 'попробуйте позже');
+                status.className = 'text-xs text-red-600 text-center mt-2';
+                status.classList.remove('hidden');
+                btn.innerHTML = '<span>📧</span><span>Выгрузить таблицу на почту</span>';
+                btn.disabled = false;
+            });
+        }
+
+        // --- УПРАВЛЕНИЕ СОТРУДНИКАМИ ---
+        function loadUsersList() {
+            const list = document.getElementById('admin-users-list');
+            list.innerHTML = '';
+            db.ref('users').on('value', (snapshot) => {
+                const users = snapshot.val() || {};
+                list.innerHTML = '';
+                if (Object.keys(users).length === 0) {
+                    list.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">Список пуст</p>';
+                    return;
+                }
+                Object.keys(users).forEach(name => {
+                    const item = document.createElement('div');
+                    item.className = 'flex justify-between items-center bg-gray-50 p-2 rounded';
+                    item.innerHTML = `<span class="text-sm">${name}</span>
+                        <button onclick="deleteUser('${name.replace(/'/g, "\\'")}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">✕</button>`;
+                    list.appendChild(item);
+                });
+            });
+        }
+
+        function addUser() {
+            const name = document.getElementById('admin-new-user').value.trim();
+            if (!name) { alert('Введите имя!'); return; }
+            db.ref('users/' + name).set({ addedAt: new Date().toISOString() });
+            document.getElementById('admin-new-user').value = '';
+        }
+
+        function deleteUser(name) {
+            if (!confirm('Удалить "' + name + '"?')) return;
+            db.ref('users/' + name).remove();
+        }
+
+        // --- УПРАВЛЕНИЕ СПИСКАМИ ---
+        function loadDropdownList(type, containerId) {
+            const list = document.getElementById(containerId);
+            list.innerHTML = '';
+            db.ref('dropdown_options/' + type).on('value', (snapshot) => {
+                const values = snapshot.val() || [];
+                list.innerHTML = '';
+                if (values.length === 0) {
+                    list.innerHTML = '<p class="text-gray-500 text-sm text-center py-2">Список пуст</p>';
+                    return;
+                }
+                values.forEach((v, i) => {
+                    const item = document.createElement('div');
+                    item.className = 'flex justify-between items-center bg-gray-50 p-2 rounded';
+                    item.innerHTML = `<span class="text-sm">${v}</span>
+                        <button onclick="deleteDropdownValue('${type}',${i})" class="bg-red-500 text-white px-2 py-1 rounded text-xs">✕</button>`;
+                    list.appendChild(item);
+                });
+
+                // Обновляем локальные массивы
+                if (type === 'shop') shopOptions = values;
+                if (type === 'equipment') equipmentOptions = values;
+            });
+        }
+
+        function addDropdownValue(type) {
+            const input = document.getElementById('admin-new-' + type);
+            const val = input.value.trim();
+            if (!val) { alert('Введите значение!'); return; }
+            db.ref('dropdown_options/' + type).transaction(cur => {
+                cur = cur || [];
+                if (!cur.includes(val)) cur.push(val);
+                return cur;
+            });
+            input.value = '';
+        }
+
+        function deleteDropdownValue(type, index) {
+            if (!confirm('Удалить?')) return;
+            db.ref('dropdown_options/' + type).transaction(cur => {
+                cur = cur || [];
+                cur.splice(index, 1);
+                return cur;
+            });
+        }
+
+        // --- ВКЛАДКИ ---
+        function switchTab(tab) {
+            document.getElementById('content-downtime-form').classList.toggle('hidden', tab !== 'downtime-form');
+            document.getElementById('content-downtime-view').classList.toggle('hidden', tab !== 'downtime-view');
+            document.getElementById('tab-downtime-form').className = tab === 'downtime-form'
+                ? 'flex-1 py-3 text-center font-semibold tab-active text-sm'
+                : 'flex-1 py-3 text-center font-semibold tab-inactive text-sm';
+            document.getElementById('tab-downtime-view').className = tab === 'downtime-view'
+                ? 'flex-1 py-3 text-center font-semibold tab-active text-sm'
+                : 'flex-1 py-3 text-center font-semibold tab-inactive text-sm';
+        }
+
+        // --- ФОРМА ПРОСТОЕВ ---
+        function submitDowntime() {
+            const reason = document.getElementById('input-reason').value.trim();
+
+            if (!selectedShop || !selectedEquipment || !reason) {
+                alert('Заполните все поля!');
+                return;
+            }
+
+            const durationText = calcDurationText(selectedStartHour, selectedStartMin, selectedEndHour, selectedEndMin);
+            if (!durationText) {
+                alert('Время начала и окончания не должны совпадать!');
+                return;
+            }
+
+            const now = new Date();
+            db.ref('downtime_records').push({
+                author: currentUser,
+                shop: selectedShop,
+                equipment: selectedEquipment,
+                startHour: selectedStartHour,
+                startMin: selectedStartMin,
+                endHour: selectedEndHour,
+                endMin: selectedEndMin,
+                startTime: formatTime(selectedStartHour, selectedStartMin),
+                endTime: formatTime(selectedEndHour, selectedEndMin),
+                durationText: durationText,
+                reason: reason,
+                timestamp: now.getTime(),
+                date: now.toLocaleDateString('ru-RU')
+            });
+
+            // Сброс формы
+            selectedShop = '';
+            selectedEquipment = '';
+            selectedStartHour = 8;
+            selectedStartMin = 0;
+            selectedEndHour = 8;
+            selectedEndMin = 30;
+            document.getElementById('shop-select-text').textContent = 'Выберите цех...';
+            document.getElementById('equipment-select-text').textContent = 'Выберите оборудование...';
+            document.getElementById('start-hour-display').textContent = '08';
+            document.getElementById('start-min-display').textContent = '00';
+            document.getElementById('end-hour-display').textContent = '08';
+            document.getElementById('end-min-display').textContent = '30';
+            document.getElementById('input-reason').value = '';
+            document.getElementById('shop-select-display').classList.remove('selected');
+            document.getElementById('equipment-select-display').classList.remove('selected');
+            updateDurationHint();
+
+            alert('Простой зарегистрирован!\nДлительность: ' + durationText);
+        }
+
+        // --- ТАБЛИЦА ПРОСМОТРА ---
+        const downtimeTableBody = document.getElementById('downtime-table-body');
+
+        db.ref('downtime_records').on('value', (snapshot) => {
+            const records = snapshot.val() || {};
+            const arr = Object.values(records);
+            arr.sort((a, b) => b.timestamp - a.timestamp);
+            cachedRecords = arr;
+
+            downtimeTableBody.innerHTML = '';
+
+            if (arr.length === 0) {
+                downtimeTableBody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gray-500">Нет записей</td></tr>';
+                return;
+            }
+
+            arr.forEach(r => {
+                const dur = calcDurationText(r.startHour, r.startMin, r.endHour, r.endMin) || r.durationText || '—';
+                const period = (r.startTime || '??:??') + ' — ' + (r.endTime || '??:??');
+
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="p-2 text-xs">${r.date}</td>
+                    <td class="p-2 text-xs font-medium text-blue-700">${r.author || '—'}</td>
+                    <td class="p-2 font-medium">${r.shop}</td>
+                    <td class="p-2">${r.equipment}</td>
+                    <td class="p-2 text-xs">${period}</td>
+                    <td class="p-2"><span class="bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded">${dur}</span></td>
+                    <td class="p-2 text-xs">${r.reason}</td>
+                `;
+                downtimeTableBody.appendChild(row);
+            });
+        });
+
+        // --- ИНИЦИАЛИЗАЦИЯ ---
+        showLoadingScreen();
+        checkAutoLogin();
+        initTimeOptions();
+        updateDurationHint();
+    </script>
+</body>
+</html>
