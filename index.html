@@ -2,7 +2,9 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>Учет простоев</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -10,7 +12,11 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; }
+        body { 
+            font-family: system-ui, -apple-system, sans-serif; 
+            padding-bottom: 0;
+            margin: 0;
+        }
         .tab-active { background-color: #2563eb; color: white; }
         .tab-inactive { background-color: #f3f4f6; color: #374151; }
         .loader {
@@ -55,9 +61,7 @@
             align-items: center;
             font-size: 14px;
         }
-        .custom-select-display:hover {
-            border-color: #2563eb;
-        }
+        .custom-select-display:hover { border-color: #2563eb; }
         .custom-select-display.selected {
             background: #eff6ff;
             border-color: #2563eb;
@@ -92,6 +96,7 @@
         }
         .modal-footer {
             padding: 12px 16px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
             border-top: 1px solid #e5e7eb;
         }
         .option-item {
@@ -100,13 +105,28 @@
             cursor: pointer;
             transition: background 0.2s;
         }
-        .option-item:hover {
-            background: #f3f4f6;
-        }
+        .option-item:hover { background: #f3f4f6; }
         .option-item.selected {
             background: #eff6ff;
             color: #2563eb;
             font-weight: 600;
+        }
+        /* Фиксированная кнопка внизу экрана */
+        .fixed-bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 12px 16px;
+            padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+            background: white;
+            border-top: 1px solid #e5e7eb;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            z-index: 50;
+        }
+        /* Отступ для контента формы, чтобы не перекрывался кнопкой */
+        .form-content-wrapper {
+            padding-bottom: 90px !important;
         }
     </style>
 </head>
@@ -165,7 +185,6 @@
             </div>
             <div id="admin-content">
                 
-                <!-- Выгрузка таблицы -->
                 <div class="admin-section">
                     <button onclick="exportTable()" id="export-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-md flex items-center justify-center gap-2">
                         <span>📧</span>
@@ -174,7 +193,6 @@
                     <p id="export-status" class="text-xs text-gray-500 text-center mt-2 hidden"></p>
                 </div>
 
-                <!-- Сотрудники -->
                 <div class="admin-section">
                     <h4 class="font-bold text-gray-800 mb-3">👥 Сотрудники</h4>
                     <div class="flex gap-2 mb-3">
@@ -184,7 +202,6 @@
                     <div id="admin-users-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
                 </div>
 
-                <!-- Цеха -->
                 <div class="admin-section">
                     <h4 class="font-bold text-gray-800 mb-3">🏭 Цеха</h4>
                     <div class="flex gap-2 mb-3">
@@ -194,7 +211,6 @@
                     <div id="admin-shops-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
                 </div>
 
-                <!-- Оборудование -->
                 <div class="admin-section">
                     <h4 class="font-bold text-gray-800 mb-3">🔧 Оборудование</h4>
                     <div class="flex gap-2 mb-3">
@@ -230,11 +246,10 @@
 
             <!-- ВКЛАДКА: ФОРМА ПРОСТОЕВ -->
             <div id="content-downtime-form" class="flex-1 flex flex-col">
-                <div class="flex-1 overflow-y-auto p-4">
+                <div class="flex-1 overflow-y-auto p-4 form-content-wrapper">
                     <div class="bg-white p-4 rounded-lg shadow-md space-y-4">
                         <h2 class="text-lg font-bold text-gray-800 mb-4">Зарегистрировать простой</h2>
 
-                        <!-- Цех -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Цех</label>
                             <div id="shop-select-display" class="custom-select-display" onclick="openCustomSelect('shop')">
@@ -243,7 +258,6 @@
                             </div>
                         </div>
 
-                        <!-- Оборудование -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Оборудование</label>
                             <div id="equipment-select-display" class="custom-select-display" onclick="openCustomSelect('equipment')">
@@ -252,11 +266,9 @@
                             </div>
                         </div>
 
-                        <!-- Время простоя: с ... по ... -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Время простоя</label>
                             <div class="flex gap-3">
-                                <!-- Блок "С" -->
                                 <div class="time-block flex-1">
                                     <div class="text-xs font-bold text-gray-500 mb-2 text-center">С</div>
                                     <div class="flex items-center justify-center gap-1">
@@ -268,7 +280,6 @@
                                         <span>ч</span><span>мин</span>
                                     </div>
                                 </div>
-                                <!-- Блок "ПО" -->
                                 <div class="time-block flex-1">
                                     <div class="text-xs font-bold text-gray-500 mb-2 text-center">ПО</div>
                                     <div class="flex items-center justify-center gap-1">
@@ -281,20 +292,20 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- Подсказка длительности -->
                             <div id="duration-hint" class="text-center text-sm font-semibold text-blue-600 mt-2"></div>
                         </div>
 
-                        <!-- Причина простоя -->
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Причина простоя</label>
                             <textarea id="input-reason" rows="4" placeholder="Опишите причину простоя..." class="w-full p-2 border rounded text-sm"></textarea>
                         </div>
-
-                        <button onclick="submitDowntime()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg shadow-md">
-                            ✓ Опубликовать
-                        </button>
                     </div>
+                </div>
+                <!-- ФИКСИРОВАННАЯ КНОПКА ВНИЗУ ЭКРАНА -->
+                <div class="fixed-bottom-bar">
+                    <button onclick="submitDowntime()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg shadow-md text-base">
+                        ✓ Опубликовать
+                    </button>
                 </div>
             </div>
 
@@ -324,7 +335,7 @@
     <div id="custom-select-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <button onclick="closeCustomSelect()" class="text-blue-600 font-semibold">Назад</button>
+                <button onclick="closeCustomSelect()" class="text-blue-600 font-semibold">← Назад</button>
                 <h3 id="custom-select-title" class="font-bold text-gray-800">Выберите значение</h3>
                 <div class="w-12"></div>
             </div>
@@ -338,6 +349,7 @@
     </div>
 
     <script>
+      
         // --- НАСТРОЙКИ FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyAVW0vM_-G3KexwW2HbdKooRO6FkbNyyYM",
@@ -363,20 +375,17 @@
         // --- UID АДМИНИСТРАТОРА ---
         const ADMIN_UID = "0vrsntQSoANT0r6fBpUcb1h1aau1";
 
-        // --- ПЕРЕМЕННЫЕ ---
+
         let currentUser = '';
         let cachedRecords = [];
         let currentSelectType = '';
-        let currentSelectValue = '';
         let tempSelectValue = '';
 
-        // Данные для списков
         let shopOptions = [];
         let equipmentOptions = [];
         let hourOptions = [];
         let minuteOptions = [];
 
-        // Выбранные значения
         let selectedShop = '';
         let selectedEquipment = '';
         let selectedStartHour = 8;
@@ -384,7 +393,14 @@
         let selectedEndHour = 8;
         let selectedEndMin = 30;
 
-        // --- ИНИЦИАЛИЗАЦИЯ СПИСКОВ ВРЕМЕНИ ---
+        function loadOptionsFromFirebase() {
+            db.ref('dropdown_options').on('value', (snapshot) => {
+                const options = snapshot.val() || {};
+                shopOptions = options.shop || [];
+                equipmentOptions = options.equipment || [];
+            });
+        }
+
         function initTimeOptions() {
             for (let h = 0; h < 24; h++) {
                 hourOptions.push({ value: h, label: String(h).padStart(2, '0') });
@@ -394,7 +410,6 @@
             }
         }
 
-        // --- КАСТОМНЫЕ ВЫПАДАЮЩИЕ СПИСКИ ---
         function openCustomSelect(type) {
             currentSelectType = type;
             const modal = document.getElementById('custom-select-modal');
@@ -406,17 +421,23 @@
             if (type === 'shop') {
                 title.textContent = 'Выберите цех';
                 tempSelectValue = selectedShop;
-                shopOptions.forEach(opt => {
-                    const item = createOptionItem(opt, opt === selectedShop);
-                    body.appendChild(item);
-                });
+                if (shopOptions.length === 0) {
+                    body.innerHTML = '<p class="text-center text-gray-500 py-8">Список пуст. Обратитесь к администратору.</p>';
+                } else {
+                    shopOptions.forEach(opt => {
+                        body.appendChild(createOptionItem(opt, opt === selectedShop));
+                    });
+                }
             } else if (type === 'equipment') {
                 title.textContent = 'Выберите оборудование';
                 tempSelectValue = selectedEquipment;
-                equipmentOptions.forEach(opt => {
-                    const item = createOptionItem(opt, opt === selectedEquipment);
-                    body.appendChild(item);
-                });
+                if (equipmentOptions.length === 0) {
+                    body.innerHTML = '<p class="text-center text-gray-500 py-8">Список пуст. Обратитесь к администратору.</p>';
+                } else {
+                    equipmentOptions.forEach(opt => {
+                        body.appendChild(createOptionItem(opt, opt === selectedEquipment));
+                    });
+                }
             } else if (type === 'start-hour') {
                 title.textContent = 'Часы начала';
                 tempSelectValue = selectedStartHour;
@@ -502,7 +523,6 @@
             tempSelectValue = '';
         }
 
-        // --- ПОДСКАЗКА ДЛИТЕЛЬНОСТИ ---
         function updateDurationHint() {
             const durationText = calcDurationText(selectedStartHour, selectedStartMin, selectedEndHour, selectedEndMin);
             const hint = document.getElementById('duration-hint');
@@ -516,7 +536,6 @@
             }
         }
 
-        // --- РАСЧЁТ ДЛИТЕЛЬНОСТИ ---
         function calcDurationText(sh, sm, eh, em) {
             let startTotal = sh * 60 + sm;
             let endTotal = eh * 60 + em;
@@ -538,12 +557,10 @@
             return parts.join(' ') || null;
         }
 
-        // --- ФОРМАТИРОВАНИЕ ВРЕМЕНИ ---
         function formatTime(h, m) {
             return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
         }
 
-        // --- ЭКРАНЫ ---
         function showLoadingScreen() {
             document.getElementById('loading-screen').classList.remove('hidden');
             document.getElementById('auth-screen').classList.add('hidden');
@@ -566,7 +583,6 @@
             document.getElementById('current-user-name').textContent = currentUser;
         }
 
-        // --- АВТОРИЗАЦИЯ ---
         function checkAutoLogin() {
             const savedUser = localStorage.getItem('app_user_name');
             if (!savedUser) { showAuthScreen(); return; }
@@ -606,7 +622,6 @@
             }
         }
 
-        // --- ВХОД АДМИНИСТРАТОРА ---
         function openAdminLoginModal() {
             document.getElementById('admin-login-modal').classList.remove('hidden');
             document.getElementById('admin-email').value = '';
@@ -659,7 +674,6 @@
             }
         }
 
-        // --- АДМИН-ПАНЕЛЬ ---
         function openAdminPanel() {
             const user = auth.currentUser;
             if (!user || user.uid !== ADMIN_UID) { alert('Доступ запрещён!'); return; }
@@ -677,7 +691,6 @@
             loadDropdownList('equipment', 'admin-equipment-list');
         }
 
-        // --- ВЫГРУЗКА ТАБЛИЦЫ ---
         function exportTable() {
             const btn = document.getElementById('export-btn');
             const status = document.getElementById('export-status');
@@ -731,7 +744,6 @@
             });
         }
 
-        // --- УПРАВЛЕНИЕ СОТРУДНИКАМИ ---
         function loadUsersList() {
             const list = document.getElementById('admin-users-list');
             list.innerHTML = '';
@@ -764,7 +776,6 @@
             db.ref('users/' + name).remove();
         }
 
-        // --- УПРАВЛЕНИЕ СПИСКАМИ ---
         function loadDropdownList(type, containerId) {
             const list = document.getElementById(containerId);
             list.innerHTML = '';
@@ -782,10 +793,6 @@
                         <button onclick="deleteDropdownValue('${type}',${i})" class="bg-red-500 text-white px-2 py-1 rounded text-xs">✕</button>`;
                     list.appendChild(item);
                 });
-
-                // Обновляем локальные массивы
-                if (type === 'shop') shopOptions = values;
-                if (type === 'equipment') equipmentOptions = values;
             });
         }
 
@@ -810,7 +817,6 @@
             });
         }
 
-        // --- ВКЛАДКИ ---
         function switchTab(tab) {
             document.getElementById('content-downtime-form').classList.toggle('hidden', tab !== 'downtime-form');
             document.getElementById('content-downtime-view').classList.toggle('hidden', tab !== 'downtime-view');
@@ -822,7 +828,6 @@
                 : 'flex-1 py-3 text-center font-semibold tab-inactive text-sm';
         }
 
-        // --- ФОРМА ПРОСТОЕВ ---
         function submitDowntime() {
             const reason = document.getElementById('input-reason').value.trim();
 
@@ -854,7 +859,6 @@
                 date: now.toLocaleDateString('ru-RU')
             });
 
-            // Сброс формы
             selectedShop = '';
             selectedEquipment = '';
             selectedStartHour = 8;
@@ -875,7 +879,6 @@
             alert('Простой зарегистрирован!\nДлительность: ' + durationText);
         }
 
-        // --- ТАБЛИЦА ПРОСМОТРА ---
         const downtimeTableBody = document.getElementById('downtime-table-body');
 
         db.ref('downtime_records').on('value', (snapshot) => {
@@ -909,23 +912,7 @@
                 downtimeTableBody.appendChild(row);
             });
         });
-        // --- ЗАГРУЗКА СПИСКОВ ИЗ FIREBASE ПРИ СТАРТЕ ---
-        function loadOptionsFromFirebase() {
-            db.ref('dropdown_options').on('value', (snapshot) => {
-                const options = snapshot.val() || {};
-        
-                // Загружаем цеха
-                shopOptions = options.shop || [];
-        
-                // Загружаем оборудование
-                equipmentOptions = options.equipment || [];
-        
-                console.log('Списки загружены:', {
-                    shops: shopOptions.length,
-                    equipment: equipmentOptions.length
-                });
-            });
-        }
+
         // --- ИНИЦИАЛИЗАЦИЯ ---
         showLoadingScreen();
         checkAutoLogin();
