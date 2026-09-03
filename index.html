@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <title>Учет простоев</title>
@@ -12,10 +12,13 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
     <style>
+        html { height: -webkit-fill-available; }
         body { 
             font-family: system-ui, -apple-system, sans-serif; 
             padding-bottom: 0;
             margin: 0;
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
         }
         .tab-active { background-color: #2563eb; color: white; }
         .tab-inactive { background-color: #f3f4f6; color: #374151; }
@@ -111,7 +114,6 @@
             color: #2563eb;
             font-weight: 600;
         }
-        /* Фиксированная кнопка внизу экрана */
         .fixed-bottom-bar {
             position: fixed;
             bottom: 0;
@@ -123,10 +125,18 @@
             border-top: 1px solid #e5e7eb;
             box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
             z-index: 50;
+            transition: transform 0.25s ease, opacity 0.25s ease;
         }
-        /* Отступ для контента формы, чтобы не перекрывался кнопкой */
+        .fixed-bottom-bar.hidden-on-focus {
+            transform: translateY(100%);
+            opacity: 0;
+            pointer-events: none;
+        }
         .form-content-wrapper {
             padding-bottom: 90px !important;
+        }
+        .form-content-wrapper.no-fixed-button {
+            padding-bottom: 20px !important;
         }
     </style>
 </head>
@@ -184,7 +194,6 @@
                 <button onclick="closeAdminPanel()" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
             </div>
             <div id="admin-content">
-                
                 <div class="admin-section">
                     <button onclick="exportTable()" id="export-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-md flex items-center justify-center gap-2">
                         <span>📧</span>
@@ -192,7 +201,6 @@
                     </button>
                     <p id="export-status" class="text-xs text-gray-500 text-center mt-2 hidden"></p>
                 </div>
-
                 <div class="admin-section">
                     <h4 class="font-bold text-gray-800 mb-3">👥 Сотрудники</h4>
                     <div class="flex gap-2 mb-3">
@@ -201,7 +209,6 @@
                     </div>
                     <div id="admin-users-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
                 </div>
-
                 <div class="admin-section">
                     <h4 class="font-bold text-gray-800 mb-3">🏭 Цеха</h4>
                     <div class="flex gap-2 mb-3">
@@ -210,7 +217,6 @@
                     </div>
                     <div id="admin-shops-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
                 </div>
-
                 <div class="admin-section">
                     <h4 class="font-bold text-gray-800 mb-3">🔧 Оборудование</h4>
                     <div class="flex gap-2 mb-3">
@@ -219,7 +225,6 @@
                     </div>
                     <div id="admin-equipment-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
                 </div>
-
                 <button onclick="adminLogout()" class="w-full bg-red-500 text-white font-bold py-2 rounded text-sm mt-4">
                     Выйти из аккаунта администратора
                 </button>
@@ -229,7 +234,6 @@
 
     <!-- ОСНОВНОЕ ПРИЛОЖЕНИЕ -->
     <div id="main-app" class="hidden flex-col h-screen">
-        
         <header class="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
             <div class="text-xl font-bold">Учет простоев</div>
             <button onclick="logout()" class="text-xs bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded">
@@ -244,7 +248,6 @@
 
         <div class="flex-1 overflow-hidden flex flex-col">
 
-            <!-- ВКЛАДКА: ФОРМА ПРОСТОЕВ -->
             <div id="content-downtime-form" class="flex-1 flex flex-col">
                 <div class="flex-1 overflow-y-auto p-4 form-content-wrapper">
                     <div class="bg-white p-4 rounded-lg shadow-md space-y-4">
@@ -301,7 +304,6 @@
                         </div>
                     </div>
                 </div>
-                <!-- ФИКСИРОВАННАЯ КНОПКА ВНИЗУ ЭКРАНА -->
                 <div class="fixed-bottom-bar">
                     <button onclick="submitDowntime()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg shadow-md text-base">
                         ✓ Опубликовать
@@ -309,7 +311,6 @@
                 </div>
             </div>
 
-            <!-- ВКЛАДКА: ПРОСМОТР ПРОСТОЕВ -->
             <div id="content-downtime-view" class="flex-1 flex flex-col hidden">
                 <div class="flex-1 overflow-auto p-3">
                     <table class="w-full text-sm text-left bg-white shadow rounded-lg">
@@ -349,7 +350,6 @@
     </div>
 
     <script>
-      
         // --- НАСТРОЙКИ FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyAVW0vM_-G3KexwW2HbdKooRO6FkbNyyYM",
@@ -415,7 +415,6 @@
             const modal = document.getElementById('custom-select-modal');
             const title = document.getElementById('custom-select-title');
             const body = document.getElementById('custom-select-body');
-
             body.innerHTML = '';
 
             if (type === 'shop') {
@@ -424,9 +423,7 @@
                 if (shopOptions.length === 0) {
                     body.innerHTML = '<p class="text-center text-gray-500 py-8">Список пуст. Обратитесь к администратору.</p>';
                 } else {
-                    shopOptions.forEach(opt => {
-                        body.appendChild(createOptionItem(opt, opt === selectedShop));
-                    });
+                    shopOptions.forEach(opt => body.appendChild(createOptionItem(opt, opt === selectedShop)));
                 }
             } else if (type === 'equipment') {
                 title.textContent = 'Выберите оборудование';
@@ -434,9 +431,7 @@
                 if (equipmentOptions.length === 0) {
                     body.innerHTML = '<p class="text-center text-gray-500 py-8">Список пуст. Обратитесь к администратору.</p>';
                 } else {
-                    equipmentOptions.forEach(opt => {
-                        body.appendChild(createOptionItem(opt, opt === selectedEquipment));
-                    });
+                    equipmentOptions.forEach(opt => body.appendChild(createOptionItem(opt, opt === selectedEquipment)));
                 }
             } else if (type === 'start-hour') {
                 title.textContent = 'Часы начала';
@@ -471,7 +466,6 @@
                     body.appendChild(item);
                 });
             }
-
             modal.classList.remove('hidden');
         }
 
@@ -512,7 +506,6 @@
                 selectedEndMin = tempSelectValue;
                 document.getElementById('end-min-display').textContent = String(tempSelectValue).padStart(2, '0');
             }
-
             updateDurationHint();
             closeCustomSelect();
         }
@@ -526,7 +519,6 @@
         function updateDurationHint() {
             const durationText = calcDurationText(selectedStartHour, selectedStartMin, selectedEndHour, selectedEndMin);
             const hint = document.getElementById('duration-hint');
-
             if (durationText) {
                 hint.textContent = 'Длительность: ' + durationText;
                 hint.className = 'text-center text-sm font-semibold text-blue-600 mt-2';
@@ -539,21 +531,14 @@
         function calcDurationText(sh, sm, eh, em) {
             let startTotal = sh * 60 + sm;
             let endTotal = eh * 60 + em;
-
-            if (endTotal <= startTotal) {
-                endTotal += 24 * 60;
-            }
-
+            if (endTotal <= startTotal) endTotal += 24 * 60;
             const diff = endTotal - startTotal;
             if (diff === 0 || diff === 24 * 60) return null;
-
             const hours = Math.floor(diff / 60);
             const minutes = diff % 60;
-
             let parts = [];
             if (hours > 0) parts.push(hours + ' ч');
             if (minutes > 0) parts.push(minutes + ' мин');
-
             return parts.join(' ') || null;
         }
 
@@ -586,7 +571,6 @@
         function checkAutoLogin() {
             const savedUser = localStorage.getItem('app_user_name');
             if (!savedUser) { showAuthScreen(); return; }
-
             db.ref('users/' + savedUser).once('value', (snapshot) => {
                 if (snapshot.exists()) {
                     currentUser = savedUser;
@@ -601,7 +585,6 @@
         function login() {
             const name = document.getElementById('auth-name').value.trim();
             if (!name) { alert('Пожалуйста, введите ваше имя!'); return; }
-
             db.ref('users/' + name).once('value', (snapshot) => {
                 if (snapshot.exists()) {
                     currentUser = name;
@@ -638,13 +621,11 @@
             const password = document.getElementById('admin-password').value;
             const errorEl = document.getElementById('admin-login-error');
             errorEl.classList.add('hidden');
-
             if (!email || !password) {
                 errorEl.textContent = 'Заполните все поля!';
                 errorEl.classList.remove('hidden');
                 return;
             }
-
             auth.signInWithEmailAndPassword(email, password)
                 .then((userCredential) => {
                     if (userCredential.user.uid !== ADMIN_UID) {
@@ -694,19 +675,15 @@
         function exportTable() {
             const btn = document.getElementById('export-btn');
             const status = document.getElementById('export-status');
-
             if (cachedRecords.length === 0) { alert('Нет записей для выгрузки!'); return; }
             if (!confirm('Отправить таблицу (' + cachedRecords.length + ' записей) на ' + EXPORT_EMAIL + '?')) return;
-
             btn.disabled = true;
             btn.innerHTML = '<span>⏳</span><span>Отправка...</span>';
             status.classList.add('hidden');
-
             let tableHtml = '<table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:Arial;font-size:13px;">';
             tableHtml += '<thead style="background:#2563eb;color:white;">';
             tableHtml += '<tr><th>Дата</th><th>Автор</th><th>Цех</th><th>Оборудование</th><th>Период</th><th>Длительность</th><th>Причина</th></tr>';
             tableHtml += '</thead><tbody>';
-
             cachedRecords.forEach((r, i) => {
                 const bg = i % 2 === 0 ? '#fff' : '#f3f4f6';
                 const period = (r.startTime || '') + ' — ' + (r.endTime || '');
@@ -722,7 +699,6 @@
                 tableHtml += '</tr>';
             });
             tableHtml += '</tbody></table>';
-
             emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
                 to_email: EXPORT_EMAIL,
                 from_name: currentUser || 'Администратор',
@@ -830,18 +806,15 @@
 
         function submitDowntime() {
             const reason = document.getElementById('input-reason').value.trim();
-
             if (!selectedShop || !selectedEquipment || !reason) {
                 alert('Заполните все поля!');
                 return;
             }
-
             const durationText = calcDurationText(selectedStartHour, selectedStartMin, selectedEndHour, selectedEndMin);
             if (!durationText) {
                 alert('Время начала и окончания не должны совпадать!');
                 return;
             }
-
             const now = new Date();
             db.ref('downtime_records').push({
                 author: currentUser,
@@ -858,7 +831,6 @@
                 timestamp: now.getTime(),
                 date: now.toLocaleDateString('ru-RU')
             });
-
             selectedShop = '';
             selectedEquipment = '';
             selectedStartHour = 8;
@@ -875,29 +847,23 @@
             document.getElementById('shop-select-display').classList.remove('selected');
             document.getElementById('equipment-select-display').classList.remove('selected');
             updateDurationHint();
-
             alert('Простой зарегистрирован!\nДлительность: ' + durationText);
         }
 
         const downtimeTableBody = document.getElementById('downtime-table-body');
-
         db.ref('downtime_records').on('value', (snapshot) => {
             const records = snapshot.val() || {};
             const arr = Object.values(records);
             arr.sort((a, b) => b.timestamp - a.timestamp);
             cachedRecords = arr;
-
             downtimeTableBody.innerHTML = '';
-
             if (arr.length === 0) {
                 downtimeTableBody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-gray-500">Нет записей</td></tr>';
                 return;
             }
-
             arr.forEach(r => {
                 const dur = calcDurationText(r.startHour, r.startMin, r.endHour, r.endMin) || r.durationText || '—';
                 const period = (r.startTime || '??:??') + ' — ' + (r.endTime || '??:??');
-
                 const row = document.createElement('tr');
                 row.className = 'hover:bg-gray-50';
                 row.innerHTML = `
@@ -913,12 +879,74 @@
             });
         });
 
+        // --- ОБРАБОТКА КЛАВИАТУРЫ И ФОКУСА НА ПОЛЯХ ---
+        function setupKeyboardHandling() {
+            const form = document.getElementById('content-downtime-form');
+            const fixedBar = document.querySelector('.fixed-bottom-bar');
+            const formWrapper = document.querySelector('.form-content-wrapper');
+            
+            if (!form || !fixedBar || !formWrapper) return;
+            
+            // При фокусе на поле ввода — скрываем кнопку и прокручиваем к полю
+            form.addEventListener('focusin', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                    fixedBar.classList.add('hidden-on-focus');
+                    formWrapper.classList.add('no-fixed-button');
+                    
+                    setTimeout(() => {
+                        e.target.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center',
+                            inline: 'nearest'
+                        });
+                    }, 300);
+                    
+                    setTimeout(() => {
+                        e.target.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'center',
+                            inline: 'nearest'
+                        });
+                    }, 600);
+                }
+            });
+            
+            // При потере фокуса — возвращаем кнопку
+            form.addEventListener('focusout', (e) => {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                    setTimeout(() => {
+                        const active = document.activeElement;
+                        if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+                            fixedBar.classList.remove('hidden-on-focus');
+                            formWrapper.classList.remove('no-fixed-button');
+                        }
+                    }, 100);
+                }
+            });
+            
+            // Дополнительная обработка для iOS — отслеживание изменения viewport
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', () => {
+                    const active = document.activeElement;
+                    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+                        setTimeout(() => {
+                            active.scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'center' 
+                            });
+                        }, 100);
+                    }
+                });
+            }
+        }
+
         // --- ИНИЦИАЛИЗАЦИЯ ---
         showLoadingScreen();
         checkAutoLogin();
         initTimeOptions();
         loadOptionsFromFirebase();
         updateDurationHint();
+        setupKeyboardHandling();
     </script>
 </body>
 </html>
