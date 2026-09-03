@@ -909,11 +909,28 @@
                 downtimeTableBody.appendChild(row);
             });
         });
-
+        // --- ЗАГРУЗКА СПИСКОВ ИЗ FIREBASE ПРИ СТАРТЕ ---
+        function loadOptionsFromFirebase() {
+            db.ref('dropdown_options').on('value', (snapshot) => {
+                const options = snapshot.val() || {};
+        
+                // Загружаем цеха
+                shopOptions = options.shop || [];
+        
+                // Загружаем оборудование
+                equipmentOptions = options.equipment || [];
+        
+                console.log('Списки загружены:', {
+                    shops: shopOptions.length,
+                    equipment: equipmentOptions.length
+                });
+            });
+        }
         // --- ИНИЦИАЛИЗАЦИЯ ---
         showLoadingScreen();
         checkAutoLogin();
         initTimeOptions();
+        loadOptionsFromFirebase();
         updateDurationHint();
     </script>
 </body>
