@@ -136,7 +136,6 @@
         .form-content-wrapper.no-fixed-button {
             padding-bottom: 20px !important;
         }
-        /* Админ-панель: прокручиваемый контейнер без ограничений */
         .admin-scroll-container {
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
@@ -182,10 +181,8 @@
             </button>
         </header>
 
-        <!-- Вкладки -->
         <div id="tabs-container" class="flex border-b border-gray-300 bg-white"></div>
 
-        <!-- Контейнер для контента -->
         <div class="flex-1 overflow-hidden flex flex-col relative">
 
             <!-- ВКЛАДКА: ФОРМА ПРОСТОЕВ -->
@@ -272,14 +269,13 @@
                 </div>
             </div>
 
-            <!-- ВКЛАДКА: АДМИНИСТРИРОВАНИЕ (только для Олега) -->
+            <!-- ВКЛАДКА: АДМИНИСТРИРОВАНИЕ -->
             <div id="content-admin" class="absolute inset-0 hidden">
                 <div class="admin-scroll-container h-full">
                     <div class="p-4">
                         <div class="bg-white p-4 rounded-lg shadow-md">
                             <h2 class="text-lg font-bold text-gray-800 mb-4">⚙️ Администрирование</h2>
 
-                            <!-- Выгрузка таблицы -->
                             <div class="border-b border-gray-200 pb-4 mb-4">
                                 <button onclick="exportTable()" id="export-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-md flex items-center justify-center gap-2">
                                     <span>📧</span>
@@ -288,7 +284,6 @@
                                 <p id="export-status" class="text-xs text-gray-500 text-center mt-2 hidden"></p>
                             </div>
 
-                            <!-- Сотрудники -->
                             <div class="border-b border-gray-200 pb-4 mb-4">
                                 <h4 class="font-bold text-gray-800 mb-3">👥 Сотрудники</h4>
                                 <div class="flex gap-2 mb-3">
@@ -298,7 +293,6 @@
                                 <div id="admin-users-list" class="space-y-2"></div>
                             </div>
 
-                            <!-- Цеха -->
                             <div class="border-b border-gray-200 pb-4 mb-4">
                                 <h4 class="font-bold text-gray-800 mb-3">🏭 Цеха</h4>
                                 <div class="flex gap-2 mb-3">
@@ -308,7 +302,6 @@
                                 <div id="admin-shops-list" class="space-y-2"></div>
                             </div>
 
-                            <!-- Оборудование -->
                             <div class="pb-4 mb-4">
                                 <h4 class="font-bold text-gray-800 mb-3">🔧 Оборудование</h4>
                                 <div class="flex gap-2 mb-3">
@@ -343,7 +336,7 @@
     </div>
 
     <script>
-         // --- НАСТРОЙКИ FIREBASE ---
+        // --- НАСТРОЙКИ FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyAVW0vM_-G3KexwW2HbdKooRO6FkbNyyYM",
             authDomain: "evroblok-downtime.firebaseapp.com",
@@ -388,10 +381,8 @@
         function buildTabs() {
             const container = document.getElementById('tabs-container');
             container.innerHTML = '';
-
             const isAdmin = (currentUser === ADMIN_NAME);
             let tabs = [];
-
             if (isAdmin) {
                 tabs = [
                     { id: 'downtime-view', label: '📊 Просмотр простоев' },
@@ -403,7 +394,6 @@
                     { id: 'downtime-view', label: '📊 Просмотр простоев' }
                 ];
             }
-
             tabs.forEach((tab, index) => {
                 const btn = document.createElement('button');
                 btn.id = 'tab-' + tab.id;
@@ -412,7 +402,6 @@
                 btn.onclick = () => switchTab(tab.id);
                 container.appendChild(btn);
             });
-
             switchTab(tabs[0].id);
         }
 
@@ -634,22 +623,18 @@
             document.getElementById('content-downtime-form').classList.add('hidden');
             document.getElementById('content-downtime-view').classList.add('hidden');
             document.getElementById('content-admin').classList.add('hidden');
-
             const contentEl = document.getElementById('content-' + tab);
             if (contentEl) {
                 contentEl.classList.remove('hidden');
-                // Сбрасываем прокрутку в начало при переключении
                 const scrollContainer = contentEl.querySelector('.admin-scroll-container, .overflow-y-auto, .overflow-auto');
                 if (scrollContainer) scrollContainer.scrollTop = 0;
             }
-
             const tabsContainer = document.getElementById('tabs-container');
             const buttons = tabsContainer.querySelectorAll('button');
             buttons.forEach(btn => {
                 const btnTab = btn.id.replace('tab-', '');
                 btn.className = 'flex-1 py-3 text-center font-semibold text-sm ' + (btnTab === tab ? 'tab-active' : 'tab-inactive');
             });
-
             if (tab === 'admin') {
                 loadAllAdminData();
             }
@@ -825,6 +810,9 @@
             document.getElementById('shop-select-display').classList.remove('selected');
             document.getElementById('equipment-select-display').classList.remove('selected');
             updateDurationHint();
+            // Принудительно убираем фокус и возвращаем кнопку
+            if (document.activeElement) document.activeElement.blur();
+            showSubmitButton();
             alert('Простой зарегистрирован!\nДлительность: ' + durationText);
         }
 
@@ -857,15 +845,33 @@
             });
         });
 
+        // --- УЛУЧШЕННАЯ ОБРАБОТКА КЛАВИАТУРЫ ---
+        function showSubmitButton() {
+            const fixedBar = document.querySelector('.fixed-bottom-bar');
+            const formWrapper = document.querySelector('.form-content-wrapper');
+            if (fixedBar) fixedBar.classList.remove('hidden-on-focus');
+            if (formWrapper) formWrapper.classList.remove('no-fixed-button');
+        }
+
+        function hideSubmitButton() {
+            const fixedBar = document.querySelector('.fixed-bottom-bar');
+            const formWrapper = document.querySelector('.form-content-wrapper');
+            if (fixedBar) fixedBar.classList.add('hidden-on-focus');
+            if (formWrapper) formWrapper.classList.add('no-fixed-button');
+        }
+
         function setupKeyboardHandling() {
             const form = document.getElementById('content-downtime-form');
             const fixedBar = document.querySelector('.fixed-bottom-bar');
             const formWrapper = document.querySelector('.form-content-wrapper');
             if (!form || !fixedBar || !formWrapper) return;
+
+            let lastViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+
+            // Фокус на поле ввода — скрываем кнопку
             form.addEventListener('focusin', (e) => {
                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
-                    fixedBar.classList.add('hidden-on-focus');
-                    formWrapper.classList.add('no-fixed-button');
+                    hideSubmitButton();
                     setTimeout(() => {
                         e.target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
                     }, 300);
@@ -874,24 +880,68 @@
                     }, 600);
                 }
             });
+
+            // Потеря фокуса — возвращаем кнопку
             form.addEventListener('focusout', (e) => {
                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
                     setTimeout(() => {
                         const active = document.activeElement;
                         if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
-                            fixedBar.classList.remove('hidden-on-focus');
-                            formWrapper.classList.remove('no-fixed-button');
+                            showSubmitButton();
                         }
-                    }, 100);
+                    }, 150);
                 }
             });
+
+            // Отслеживание изменения viewport (открытие/закрытие клавиатуры)
             if (window.visualViewport) {
                 window.visualViewport.addEventListener('resize', () => {
-                    const active = document.activeElement;
-                    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+                    const currentHeight = window.visualViewport.height;
+                    const diff = currentHeight - lastViewportHeight;
+                    
+                    // Если viewport увеличился более чем на 50px — клавиатура закрылась
+                    if (diff > 50) {
+                        showSubmitButton();
+                    }
+                    // Если viewport уменьшился более чем на 50px — клавиатура открылась
+                    else if (diff < -50) {
+                        const active = document.activeElement;
+                        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+                            hideSubmitButton();
+                            setTimeout(() => {
+                                active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }, 100);
+                        }
+                    }
+                    
+                    lastViewportHeight = currentHeight;
+                });
+            }
+
+            // Клик вне полей ввода — возвращаем кнопку
+            document.addEventListener('click', (e) => {
+                const target = e.target;
+                if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
+                    // Проверяем, что клик был на вкладке формы
+                    const formTab = document.getElementById('content-downtime-form');
+                    if (formTab && !formTab.classList.contains('hidden')) {
                         setTimeout(() => {
-                            active.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            const active = document.activeElement;
+                            if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+                                showSubmitButton();
+                            }
                         }, 100);
+                    }
+                }
+            });
+
+            // Дополнительная страховка: при прокрутке формы возвращаем кнопку
+            const scrollContainer = form.querySelector('.overflow-y-auto');
+            if (scrollContainer) {
+                scrollContainer.addEventListener('scroll', () => {
+                    const active = document.activeElement;
+                    if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA')) {
+                        showSubmitButton();
                     }
                 });
             }
