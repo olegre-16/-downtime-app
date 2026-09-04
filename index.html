@@ -34,8 +34,6 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .admin-section { border-bottom: 1px solid #e5e7eb; padding-bottom: 1rem; margin-bottom: 1rem; }
-        .admin-section:last-child { border-bottom: none; }
         .time-block {
             background: #f9fafb;
             border: 1px solid #e5e7eb;
@@ -149,7 +147,7 @@
         <p class="text-white text-sm">Проверка входа...</p>
     </div>
 
-    <!-- ЭКРАН АВТОРИЗАЦИИ (без кнопки администрирования) -->
+    <!-- ЭКРАН АВТОРИЗАЦИИ -->
     <div id="auth-screen" class="hidden fixed inset-0 bg-gradient-to-br from-blue-600 to-blue-800 flex flex-col z-50">
         <div class="flex-1 flex items-center justify-center p-6">
             <div class="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-sm">
@@ -165,21 +163,6 @@
                     Войти
                 </button>
             </div>
-        </div>
-    </div>
-
-    <!-- МОДАЛЬНОЕ ОКНО ВХОДА АДМИНИСТРАТОРА (для Firebase Auth) -->
-    <div id="admin-login-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-lg p-6 w-full max-w-sm">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-bold">Вход администратора</h3>
-                <button onclick="closeAdminLoginModal()" class="text-gray-500 hover:text-gray-700 text-2xl">×</button>
-            </div>
-            <input type="email" id="admin-email" placeholder="Email администратора" class="w-full p-2 border rounded text-sm mb-3">
-            <input type="password" id="admin-password" placeholder="Пароль" class="w-full p-2 border rounded text-sm mb-3"
-                   onkeypress="if(event.key==='Enter') adminLogin()">
-            <button onclick="adminLogin()" class="w-full bg-blue-600 text-white font-bold py-2 rounded text-sm">Войти</button>
-            <p id="admin-login-error" class="text-red-500 text-xs mt-2 hidden"></p>
         </div>
     </div>
 
@@ -284,52 +267,52 @@
             </div>
 
             <!-- ВКЛАДКА: АДМИНИСТРИРОВАНИЕ (только для Олега) -->
-<div id="content-admin" class="flex-1 flex flex-col hidden">
-    <div class="flex-1 overflow-y-auto p-4 pb-8">
-        <div class="bg-white p-4 rounded-lg shadow-md space-y-4">
-            <h2 class="text-lg font-bold text-gray-800 mb-4">⚙️ Администрирование</h2>
+            <div id="content-admin" class="flex-1 flex flex-col hidden">
+                <div class="flex-1 overflow-y-auto p-4 pb-8">
+                    <div class="bg-white p-4 rounded-lg shadow-md space-y-4">
+                        <h2 class="text-lg font-bold text-gray-800 mb-4">⚙️ Администрирование</h2>
 
-            <!-- Выгрузка таблицы -->
-            <div class="border-b border-gray-200 pb-4">
-                <button onclick="exportTable()" id="export-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-md flex items-center justify-center gap-2">
-                    <span>📧</span>
-                    <span>Выгрузить таблицу на почту</span>
-                </button>
-                <p id="export-status" class="text-xs text-gray-500 text-center mt-2 hidden"></p>
-            </div>
+                        <!-- Выгрузка таблицы -->
+                        <div class="border-b border-gray-200 pb-4">
+                            <button onclick="exportTable()" id="export-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-md flex items-center justify-center gap-2">
+                                <span>📧</span>
+                                <span>Выгрузить таблицу на почту</span>
+                            </button>
+                            <p id="export-status" class="text-xs text-gray-500 text-center mt-2 hidden"></p>
+                        </div>
 
-            <!-- Сотрудники -->
-            <div class="border-b border-gray-200 pb-4">
-                <h4 class="font-bold text-gray-800 mb-3">👥 Сотрудники</h4>
-                <div class="flex gap-2 mb-3">
-                    <input type="text" id="admin-new-user" placeholder="Имя сотрудника" class="flex-1 p-2 border rounded text-sm">
-                    <button onclick="addUser()" class="bg-green-500 text-white px-4 rounded font-bold text-sm">+</button>
+                        <!-- Сотрудники -->
+                        <div class="border-b border-gray-200 pb-4">
+                            <h4 class="font-bold text-gray-800 mb-3">👥 Сотрудники</h4>
+                            <div class="flex gap-2 mb-3">
+                                <input type="text" id="admin-new-user" placeholder="Имя сотрудника" class="flex-1 p-2 border rounded text-sm">
+                                <button onclick="addUser()" class="bg-green-500 text-white px-4 rounded font-bold text-sm">+</button>
+                            </div>
+                            <div id="admin-users-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                        </div>
+
+                        <!-- Цеха -->
+                        <div class="border-b border-gray-200 pb-4">
+                            <h4 class="font-bold text-gray-800 mb-3">🏭 Цеха</h4>
+                            <div class="flex gap-2 mb-3">
+                                <input type="text" id="admin-new-shop" placeholder="Название цеха" class="flex-1 p-2 border rounded text-sm">
+                                <button onclick="addDropdownValue('shop')" class="bg-blue-500 text-white px-4 rounded font-bold text-sm">+</button>
+                            </div>
+                            <div id="admin-shops-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
+                        </div>
+
+                        <!-- Оборудование -->
+                        <div class="pb-4">
+                            <h4 class="font-bold text-gray-800 mb-3">🔧 Оборудование</h4>
+                            <div class="flex gap-2 mb-3">
+                                <input type="text" id="admin-new-equipment" placeholder="Название оборудования" class="flex-1 p-2 border rounded text-sm">
+                                <button onclick="addDropdownValue('equipment')" class="bg-blue-500 text-white px-4 rounded font-bold text-sm">+</button>
+                            </div>
+                            <div id="admin-equipment-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
+                        </div>
+                    </div>
                 </div>
-                <div id="admin-users-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
             </div>
-
-            <!-- Цеха -->
-            <div class="border-b border-gray-200 pb-4">
-                <h4 class="font-bold text-gray-800 mb-3">🏭 Цеха</h4>
-                <div class="flex gap-2 mb-3">
-                    <input type="text" id="admin-new-shop" placeholder="Название цеха" class="flex-1 p-2 border rounded text-sm">
-                    <button onclick="addDropdownValue('shop')" class="bg-blue-500 text-white px-4 rounded font-bold text-sm">+</button>
-                </div>
-                <div id="admin-shops-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
-            </div>
-
-            <!-- Оборудование -->
-            <div class="pb-4">
-                <h4 class="font-bold text-gray-800 mb-3">🔧 Оборудование</h4>
-                <div class="flex gap-2 mb-3">
-                    <input type="text" id="admin-new-equipment" placeholder="Название оборудования" class="flex-1 p-2 border rounded text-sm">
-                    <button onclick="addDropdownValue('equipment')" class="bg-blue-500 text-white px-4 rounded font-bold text-sm">+</button>
-                </div>
-                <div id="admin-equipment-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
-            </div>
-        </div>
-    </div>
-</div>
 
         </div>
     </div>
@@ -374,10 +357,6 @@
         const EXPORT_EMAIL = "evro.blok@bk.ru";
         emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
-        // --- UID АДМИНИСТРАТОРА ---
-        const ADMIN_UID = "0vrsntQSoANT0r6fBpUcb1h1aau1";
-
-
         // --- ИМЯ АДМИНИСТРАТОРА В ПРОГРАММЕ ---
         const ADMIN_NAME = "Олег";
 
@@ -409,13 +388,11 @@
             let tabs = [];
 
             if (isAdmin) {
-                // Для Олега: только Просмотр и Администрирование
                 tabs = [
                     { id: 'downtime-view', label: '📊 Просмотр простоев' },
                     { id: 'admin', label: '⚙️ Администрирование' }
                 ];
             } else {
-                // Для остальных: Простои оборудования и Просмотр
                 tabs = [
                     { id: 'downtime-form', label: '🔧 Простои оборудования' },
                     { id: 'downtime-view', label: '📊 Просмотр простоев' }
@@ -431,10 +408,10 @@
                 container.appendChild(btn);
             });
 
-            // Показываем первую вкладку
             switchTab(tabs[0].id);
         }
 
+        // --- ЗАГРУЗКА СПИСКОВ ИЗ FIREBASE ---
         function loadOptionsFromFirebase() {
             db.ref('dropdown_options').on('value', (snapshot) => {
                 const options = snapshot.val() || {};
@@ -443,6 +420,7 @@
             });
         }
 
+        // --- ИНИЦИАЛИЗАЦИЯ СПИСКОВ ВРЕМЕНИ ---
         function initTimeOptions() {
             for (let h = 0; h < 24; h++) {
                 hourOptions.push({ value: h, label: String(h).padStart(2, '0') });
@@ -452,6 +430,7 @@
             }
         }
 
+        // --- КАСТОМНЫЕ ВЫПАДАЮЩИЕ СПИСКИ ---
         function openCustomSelect(type) {
             currentSelectType = type;
             const modal = document.getElementById('custom-select-modal');
@@ -558,6 +537,7 @@
             tempSelectValue = '';
         }
 
+        // --- ПОДСКАЗКА ДЛИТЕЛЬНОСТИ ---
         function updateDurationHint() {
             const durationText = calcDurationText(selectedStartHour, selectedStartMin, selectedEndHour, selectedEndMin);
             const hint = document.getElementById('duration-hint');
@@ -588,6 +568,7 @@
             return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
         }
 
+        // --- ЭКРАНЫ ---
         function showLoadingScreen() {
             document.getElementById('loading-screen').classList.remove('hidden');
             document.getElementById('auth-screen').classList.add('hidden');
@@ -608,10 +589,10 @@
             document.getElementById('main-app').classList.remove('hidden');
             document.getElementById('main-app').style.display = 'flex';
             document.getElementById('current-user-name').textContent = currentUser;
-            // Формируем вкладки после входа
             buildTabs();
         }
 
+        // --- АВТОРИЗАЦИЯ ---
         function checkAutoLogin() {
             const savedUser = localStorage.getItem('app_user_name');
             if (!savedUser) { showAuthScreen(); return; }
@@ -649,65 +630,16 @@
             }
         }
 
-        // --- ВХОД АДМИНИСТРАТОРА (Firebase Auth) ---
-        function openAdminLoginModal() {
-            document.getElementById('admin-login-modal').classList.remove('hidden');
-            document.getElementById('admin-email').value = '';
-            document.getElementById('admin-password').value = '';
-            document.getElementById('admin-login-error').classList.add('hidden');
-        }
-
-        function closeAdminLoginModal() {
-            document.getElementById('admin-login-modal').classList.add('hidden');
-        }
-
-        function adminLogin() {
-            const email = document.getElementById('admin-email').value.trim();
-            const password = document.getElementById('admin-password').value;
-            const errorEl = document.getElementById('admin-login-error');
-            errorEl.classList.add('hidden');
-            if (!email || !password) {
-                errorEl.textContent = 'Заполните все поля!';
-                errorEl.classList.remove('hidden');
-                return;
-            }
-            auth.signInWithEmailAndPassword(email, password)
-                .then((userCredential) => {
-                    if (userCredential.user.uid !== ADMIN_UID) {
-                        auth.signOut();
-                        errorEl.textContent = 'Этот аккаунт не является администратором!';
-                        errorEl.classList.remove('hidden');
-                        return;
-                    }
-                    closeAdminLoginModal();
-                    loadAllAdminData();
-                })
-                .catch((error) => {
-                    let message = 'Ошибка входа';
-                    if (['auth/user-not-found', 'auth/wrong-password', 'auth/invalid-credential'].includes(error.code)) {
-                        message = 'Неверный email или пароль';
-                    } else if (error.code === 'auth/too-many-requests') {
-                        message = 'Слишком много попыток. Попробуйте позже';
-                    }
-                    errorEl.textContent = message;
-                    errorEl.classList.remove('hidden');
-                });
-        }
-
         // --- ВКЛАДКИ ---
         function switchTab(tab) {
             currentTab = tab;
-
-            // Скрываем все контенты
             document.getElementById('content-downtime-form').classList.add('hidden');
             document.getElementById('content-downtime-view').classList.add('hidden');
             document.getElementById('content-admin').classList.add('hidden');
 
-            // Показываем нужный
             const contentEl = document.getElementById('content-' + tab);
             if (contentEl) contentEl.classList.remove('hidden');
 
-            // Обновляем стили вкладок
             const tabsContainer = document.getElementById('tabs-container');
             const buttons = tabsContainer.querySelectorAll('button');
             buttons.forEach(btn => {
@@ -715,13 +647,12 @@
                 btn.className = 'flex-1 py-3 text-center font-semibold text-sm ' + (btnTab === tab ? 'tab-active' : 'tab-inactive');
             });
 
-            // Если перешли на вкладку администрирования — загружаем данные
             if (tab === 'admin') {
                 loadAllAdminData();
             }
         }
 
-        // --- АДМИН-ДАННЫЕ ---
+        // --- АДМИН-ПАНЕЛЬ ---
         function loadAllAdminData() {
             loadUsersList();
             loadDropdownList('shop', 'admin-shops-list');
@@ -849,6 +780,7 @@
             });
         }
 
+        // --- ФОРМА ПРОСТОЕВ ---
         function submitDowntime() {
             const reason = document.getElementById('input-reason').value.trim();
             if (!selectedShop || !selectedEquipment || !reason) {
@@ -895,6 +827,7 @@
             alert('Простой зарегистрирован!\nДлительность: ' + durationText);
         }
 
+        // --- ТАБЛИЦА ПРОСМОТРА ---
         const downtimeTableBody = document.getElementById('downtime-table-body');
         db.ref('downtime_records').on('value', (snapshot) => {
             const records = snapshot.val() || {};
@@ -924,6 +857,7 @@
             });
         });
 
+        // --- ОБРАБОТКА КЛАВИАТУРЫ ---
         function setupKeyboardHandling() {
             const form = document.getElementById('content-downtime-form');
             const fixedBar = document.querySelector('.fixed-bottom-bar');
