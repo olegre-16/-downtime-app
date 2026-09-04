@@ -136,6 +136,12 @@
         .form-content-wrapper.no-fixed-button {
             padding-bottom: 20px !important;
         }
+        /* Админ-панель: прокручиваемый контейнер без ограничений */
+        .admin-scroll-container {
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 40px;
+        }
     </style>
 </head>
 <body class="bg-gray-100 h-screen flex flex-col">
@@ -176,14 +182,14 @@
             </button>
         </header>
 
-        <!-- Вкладки (динамически формируются в JS) -->
+        <!-- Вкладки -->
         <div id="tabs-container" class="flex border-b border-gray-300 bg-white"></div>
 
         <!-- Контейнер для контента -->
-        <div class="flex-1 overflow-hidden flex flex-col">
+        <div class="flex-1 overflow-hidden flex flex-col relative">
 
             <!-- ВКЛАДКА: ФОРМА ПРОСТОЕВ -->
-            <div id="content-downtime-form" class="flex-1 flex flex-col hidden">
+            <div id="content-downtime-form" class="absolute inset-0 flex flex-col hidden">
                 <div class="flex-1 overflow-y-auto p-4 form-content-wrapper">
                     <div class="bg-white p-4 rounded-lg shadow-md space-y-4">
                         <h2 class="text-lg font-bold text-gray-800 mb-4">Зарегистрировать простой</h2>
@@ -247,7 +253,7 @@
             </div>
 
             <!-- ВКЛАДКА: ПРОСМОТР ПРОСТОЕВ -->
-            <div id="content-downtime-view" class="flex-1 flex flex-col hidden">
+            <div id="content-downtime-view" class="absolute inset-0 flex flex-col hidden">
                 <div class="flex-1 overflow-auto p-3">
                     <table class="w-full text-sm text-left bg-white shadow rounded-lg">
                         <thead class="bg-gray-200 text-gray-700 uppercase text-xs">
@@ -267,48 +273,50 @@
             </div>
 
             <!-- ВКЛАДКА: АДМИНИСТРИРОВАНИЕ (только для Олега) -->
-            <div id="content-admin" class="flex-1 flex flex-col hidden">
-                <div class="flex-1 overflow-y-auto p-4 pb-8">
-                    <div class="bg-white p-4 rounded-lg shadow-md space-y-4">
-                        <h2 class="text-lg font-bold text-gray-800 mb-4">⚙️ Администрирование</h2>
+            <div id="content-admin" class="absolute inset-0 hidden">
+                <div class="admin-scroll-container h-full">
+                    <div class="p-4">
+                        <div class="bg-white p-4 rounded-lg shadow-md">
+                            <h2 class="text-lg font-bold text-gray-800 mb-4">⚙️ Администрирование</h2>
 
-                        <!-- Выгрузка таблицы -->
-                        <div class="border-b border-gray-200 pb-4">
-                            <button onclick="exportTable()" id="export-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-md flex items-center justify-center gap-2">
-                                <span>📧</span>
-                                <span>Выгрузить таблицу на почту</span>
-                            </button>
-                            <p id="export-status" class="text-xs text-gray-500 text-center mt-2 hidden"></p>
-                        </div>
-
-                        <!-- Сотрудники -->
-                        <div class="border-b border-gray-200 pb-4">
-                            <h4 class="font-bold text-gray-800 mb-3">👥 Сотрудники</h4>
-                            <div class="flex gap-2 mb-3">
-                                <input type="text" id="admin-new-user" placeholder="Имя сотрудника" class="flex-1 p-2 border rounded text-sm">
-                                <button onclick="addUser()" class="bg-green-500 text-white px-4 rounded font-bold text-sm">+</button>
+                            <!-- Выгрузка таблицы -->
+                            <div class="border-b border-gray-200 pb-4 mb-4">
+                                <button onclick="exportTable()" id="export-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-md flex items-center justify-center gap-2">
+                                    <span>📧</span>
+                                    <span>Выгрузить таблицу на почту</span>
+                                </button>
+                                <p id="export-status" class="text-xs text-gray-500 text-center mt-2 hidden"></p>
                             </div>
-                            <div id="admin-users-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
-                        </div>
 
-                        <!-- Цеха -->
-                        <div class="border-b border-gray-200 pb-4">
-                            <h4 class="font-bold text-gray-800 mb-3">🏭 Цеха</h4>
-                            <div class="flex gap-2 mb-3">
-                                <input type="text" id="admin-new-shop" placeholder="Название цеха" class="flex-1 p-2 border rounded text-sm">
-                                <button onclick="addDropdownValue('shop')" class="bg-blue-500 text-white px-4 rounded font-bold text-sm">+</button>
+                            <!-- Сотрудники -->
+                            <div class="border-b border-gray-200 pb-4 mb-4">
+                                <h4 class="font-bold text-gray-800 mb-3">👥 Сотрудники</h4>
+                                <div class="flex gap-2 mb-3">
+                                    <input type="text" id="admin-new-user" placeholder="Имя сотрудника" class="flex-1 p-2 border rounded text-sm">
+                                    <button onclick="addUser()" class="bg-green-500 text-white px-4 rounded font-bold text-sm">+</button>
+                                </div>
+                                <div id="admin-users-list" class="space-y-2"></div>
                             </div>
-                            <div id="admin-shops-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
-                        </div>
 
-                        <!-- Оборудование -->
-                        <div class="pb-4">
-                            <h4 class="font-bold text-gray-800 mb-3">🔧 Оборудование</h4>
-                            <div class="flex gap-2 mb-3">
-                                <input type="text" id="admin-new-equipment" placeholder="Название оборудования" class="flex-1 p-2 border rounded text-sm">
-                                <button onclick="addDropdownValue('equipment')" class="bg-blue-500 text-white px-4 rounded font-bold text-sm">+</button>
+                            <!-- Цеха -->
+                            <div class="border-b border-gray-200 pb-4 mb-4">
+                                <h4 class="font-bold text-gray-800 mb-3">🏭 Цеха</h4>
+                                <div class="flex gap-2 mb-3">
+                                    <input type="text" id="admin-new-shop" placeholder="Название цеха" class="flex-1 p-2 border rounded text-sm">
+                                    <button onclick="addDropdownValue('shop')" class="bg-blue-500 text-white px-4 rounded font-bold text-sm">+</button>
+                                </div>
+                                <div id="admin-shops-list" class="space-y-2"></div>
                             </div>
-                            <div id="admin-equipment-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
+
+                            <!-- Оборудование -->
+                            <div class="pb-4 mb-4">
+                                <h4 class="font-bold text-gray-800 mb-3">🔧 Оборудование</h4>
+                                <div class="flex gap-2 mb-3">
+                                    <input type="text" id="admin-new-equipment" placeholder="Название оборудования" class="flex-1 p-2 border rounded text-sm">
+                                    <button onclick="addDropdownValue('equipment')" class="bg-blue-500 text-white px-4 rounded font-bold text-sm">+</button>
+                                </div>
+                                <div id="admin-equipment-list" class="space-y-2"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -335,7 +343,7 @@
     </div>
 
     <script>
-        // --- НАСТРОЙКИ FIREBASE ---
+         // --- НАСТРОЙКИ FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyAVW0vM_-G3KexwW2HbdKooRO6FkbNyyYM",
             authDomain: "evroblok-downtime.firebaseapp.com",
@@ -357,10 +365,8 @@
         const EXPORT_EMAIL = "evro.blok@bk.ru";
         emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
-        // --- ИМЯ АДМИНИСТРАТОРА В ПРОГРАММЕ ---
         const ADMIN_NAME = "Олег";
 
-        // --- ПЕРЕМЕННЫЕ ---
         let currentUser = '';
         let cachedRecords = [];
         let currentSelectType = '';
@@ -379,7 +385,6 @@
         let selectedEndHour = 8;
         let selectedEndMin = 30;
 
-        // --- ФОРМИРОВАНИЕ ВКЛАДОК В ЗАВИСИМОСТИ ОТ ПОЛЬЗОВАТЕЛЯ ---
         function buildTabs() {
             const container = document.getElementById('tabs-container');
             container.innerHTML = '';
@@ -411,7 +416,6 @@
             switchTab(tabs[0].id);
         }
 
-        // --- ЗАГРУЗКА СПИСКОВ ИЗ FIREBASE ---
         function loadOptionsFromFirebase() {
             db.ref('dropdown_options').on('value', (snapshot) => {
                 const options = snapshot.val() || {};
@@ -420,7 +424,6 @@
             });
         }
 
-        // --- ИНИЦИАЛИЗАЦИЯ СПИСКОВ ВРЕМЕНИ ---
         function initTimeOptions() {
             for (let h = 0; h < 24; h++) {
                 hourOptions.push({ value: h, label: String(h).padStart(2, '0') });
@@ -430,7 +433,6 @@
             }
         }
 
-        // --- КАСТОМНЫЕ ВЫПАДАЮЩИЕ СПИСКИ ---
         function openCustomSelect(type) {
             currentSelectType = type;
             const modal = document.getElementById('custom-select-modal');
@@ -537,7 +539,6 @@
             tempSelectValue = '';
         }
 
-        // --- ПОДСКАЗКА ДЛИТЕЛЬНОСТИ ---
         function updateDurationHint() {
             const durationText = calcDurationText(selectedStartHour, selectedStartMin, selectedEndHour, selectedEndMin);
             const hint = document.getElementById('duration-hint');
@@ -568,7 +569,6 @@
             return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
         }
 
-        // --- ЭКРАНЫ ---
         function showLoadingScreen() {
             document.getElementById('loading-screen').classList.remove('hidden');
             document.getElementById('auth-screen').classList.add('hidden');
@@ -592,7 +592,6 @@
             buildTabs();
         }
 
-        // --- АВТОРИЗАЦИЯ ---
         function checkAutoLogin() {
             const savedUser = localStorage.getItem('app_user_name');
             if (!savedUser) { showAuthScreen(); return; }
@@ -630,7 +629,6 @@
             }
         }
 
-        // --- ВКЛАДКИ ---
         function switchTab(tab) {
             currentTab = tab;
             document.getElementById('content-downtime-form').classList.add('hidden');
@@ -638,7 +636,12 @@
             document.getElementById('content-admin').classList.add('hidden');
 
             const contentEl = document.getElementById('content-' + tab);
-            if (contentEl) contentEl.classList.remove('hidden');
+            if (contentEl) {
+                contentEl.classList.remove('hidden');
+                // Сбрасываем прокрутку в начало при переключении
+                const scrollContainer = contentEl.querySelector('.admin-scroll-container, .overflow-y-auto, .overflow-auto');
+                if (scrollContainer) scrollContainer.scrollTop = 0;
+            }
 
             const tabsContainer = document.getElementById('tabs-container');
             const buttons = tabsContainer.querySelectorAll('button');
@@ -652,7 +655,6 @@
             }
         }
 
-        // --- АДМИН-ПАНЕЛЬ ---
         function loadAllAdminData() {
             loadUsersList();
             loadDropdownList('shop', 'admin-shops-list');
@@ -780,7 +782,6 @@
             });
         }
 
-        // --- ФОРМА ПРОСТОЕВ ---
         function submitDowntime() {
             const reason = document.getElementById('input-reason').value.trim();
             if (!selectedShop || !selectedEquipment || !reason) {
@@ -827,7 +828,6 @@
             alert('Простой зарегистрирован!\nДлительность: ' + durationText);
         }
 
-        // --- ТАБЛИЦА ПРОСМОТРА ---
         const downtimeTableBody = document.getElementById('downtime-table-body');
         db.ref('downtime_records').on('value', (snapshot) => {
             const records = snapshot.val() || {};
@@ -857,7 +857,6 @@
             });
         });
 
-        // --- ОБРАБОТКА КЛАВИАТУРЫ ---
         function setupKeyboardHandling() {
             const form = document.getElementById('content-downtime-form');
             const fixedBar = document.querySelector('.fixed-bottom-bar');
