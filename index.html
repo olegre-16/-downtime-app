@@ -284,52 +284,52 @@
             </div>
 
             <!-- ВКЛАДКА: АДМИНИСТРИРОВАНИЕ (только для Олега) -->
-            <div id="content-admin" class="flex-1 flex flex-col hidden">
-                <div class="flex-1 overflow-y-auto p-4">
-                    <div class="bg-white p-4 rounded-lg shadow-md">
-                        <h2 class="text-lg font-bold text-gray-800 mb-4">⚙️ Администрирование</h2>
+<div id="content-admin" class="flex-1 flex flex-col hidden">
+    <div class="flex-1 overflow-y-auto p-4 pb-8">
+        <div class="bg-white p-4 rounded-lg shadow-md space-y-4">
+            <h2 class="text-lg font-bold text-gray-800 mb-4">⚙️ Администрирование</h2>
 
-                        <!-- Выгрузка таблицы -->
-                        <div class="admin-section">
-                            <button onclick="exportTable()" id="export-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-md flex items-center justify-center gap-2">
-                                <span>📧</span>
-                                <span>Выгрузить таблицу на почту</span>
-                            </button>
-                            <p id="export-status" class="text-xs text-gray-500 text-center mt-2 hidden"></p>
-                        </div>
-
-                        <!-- Сотрудники -->
-                        <div class="admin-section">
-                            <h4 class="font-bold text-gray-800 mb-3">👥 Сотрудники</h4>
-                            <div class="flex gap-2 mb-3">
-                                <input type="text" id="admin-new-user" placeholder="Имя сотрудника" class="flex-1 p-2 border rounded text-sm">
-                                <button onclick="addUser()" class="bg-green-500 text-white px-4 rounded font-bold text-sm">+</button>
-                            </div>
-                            <div id="admin-users-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
-                        </div>
-
-                        <!-- Цеха -->
-                        <div class="admin-section">
-                            <h4 class="font-bold text-gray-800 mb-3">🏭 Цеха</h4>
-                            <div class="flex gap-2 mb-3">
-                                <input type="text" id="admin-new-shop" placeholder="Название цеха" class="flex-1 p-2 border rounded text-sm">
-                                <button onclick="addDropdownValue('shop')" class="bg-blue-500 text-white px-4 rounded font-bold text-sm">+</button>
-                            </div>
-                            <div id="admin-shops-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
-                        </div>
-
-                        <!-- Оборудование -->
-                        <div class="admin-section">
-                            <h4 class="font-bold text-gray-800 mb-3">🔧 Оборудование</h4>
-                            <div class="flex gap-2 mb-3">
-                                <input type="text" id="admin-new-equipment" placeholder="Название оборудования" class="flex-1 p-2 border rounded text-sm">
-                                <button onclick="addDropdownValue('equipment')" class="bg-blue-500 text-white px-4 rounded font-bold text-sm">+</button>
-                            </div>
-                            <div id="admin-equipment-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
-                        </div>
-                    </div>
-                </div>
+            <!-- Выгрузка таблицы -->
+            <div class="border-b border-gray-200 pb-4">
+                <button onclick="exportTable()" id="export-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg shadow-md flex items-center justify-center gap-2">
+                    <span>📧</span>
+                    <span>Выгрузить таблицу на почту</span>
+                </button>
+                <p id="export-status" class="text-xs text-gray-500 text-center mt-2 hidden"></p>
             </div>
+
+            <!-- Сотрудники -->
+            <div class="border-b border-gray-200 pb-4">
+                <h4 class="font-bold text-gray-800 mb-3">👥 Сотрудники</h4>
+                <div class="flex gap-2 mb-3">
+                    <input type="text" id="admin-new-user" placeholder="Имя сотрудника" class="flex-1 p-2 border rounded text-sm">
+                    <button onclick="addUser()" class="bg-green-500 text-white px-4 rounded font-bold text-sm">+</button>
+                </div>
+                <div id="admin-users-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
+            </div>
+
+            <!-- Цеха -->
+            <div class="border-b border-gray-200 pb-4">
+                <h4 class="font-bold text-gray-800 mb-3">🏭 Цеха</h4>
+                <div class="flex gap-2 mb-3">
+                    <input type="text" id="admin-new-shop" placeholder="Название цеха" class="flex-1 p-2 border rounded text-sm">
+                    <button onclick="addDropdownValue('shop')" class="bg-blue-500 text-white px-4 rounded font-bold text-sm">+</button>
+                </div>
+                <div id="admin-shops-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
+            </div>
+
+            <!-- Оборудование -->
+            <div class="pb-4">
+                <h4 class="font-bold text-gray-800 mb-3">🔧 Оборудование</h4>
+                <div class="flex gap-2 mb-3">
+                    <input type="text" id="admin-new-equipment" placeholder="Название оборудования" class="flex-1 p-2 border rounded text-sm">
+                    <button onclick="addDropdownValue('equipment')" class="bg-blue-500 text-white px-4 rounded font-bold text-sm">+</button>
+                </div>
+                <div id="admin-equipment-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
+            </div>
+        </div>
+    </div>
+</div>
 
         </div>
     </div>
