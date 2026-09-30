@@ -67,6 +67,22 @@
             background: #eff6ff;
             border-color: #2563eb;
         }
+        /* Стили для поля даты */
+        .date-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            font-size: 14px;
+            color: #111827;
+            font-family: inherit;
+        }
+        .date-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -207,6 +223,12 @@
                             </div>
                         </div>
 
+                        <!-- НОВОЕ ПОЛЕ: ДАТА ПРОСТОЯ -->
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Дата простоя</label>
+                            <input type="date" id="input-date" class="date-input">
+                        </div>
+
                         <div>
                             <label class="block text-sm font-semibold text-gray-700 mb-2">Время простоя</label>
                             <div class="flex gap-3">
@@ -336,25 +358,23 @@
     </div>
 
     <script>
-        // --- НАСТРОЙКИ FIREBASE ---
         const firebaseConfig = {
-            apiKey: "AIzaSyAVW0vM_-G3KexwW2HbdKooRO6FkbNyyYM",
-            authDomain: "evroblok-downtime.firebaseapp.com",
-            databaseURL: "https://evroblok-downtime-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "evroblok-downtime",
-            storageBucket: "evroblok-downtime.firebasestorage.app",
-            messagingSenderId: "1045156288948",
-            appId: "1:1045156288948:web:d5ed9efbc04050d36a3ae1"
+            apiKey: "ВАШ_API_KEY",
+            authDomain: "ВАШ_PROJECT.firebaseapp.com",
+            databaseURL: "https://ВАШ_PROJECT-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "ВАШ_PROJECT",
+            storageBucket: "ВАШ_PROJECT.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef"
         };
 
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
         const auth = firebase.auth();
 
-        // --- НАСТРОЙКИ EMAILJS ---
-        const EMAILJS_PUBLIC_KEY = "FFpohVBrFsy2iqMhJ";
-        const EMAILJS_SERVICE_ID = "service_d2ceu5r";
-        const EMAILJS_TEMPLATE_ID = "template_vcg81qi";
+        const EMAILJS_PUBLIC_KEY = "ВАШ_PUBLIC_KEY";
+        const EMAILJS_SERVICE_ID = "ВАШ_SERVICE_ID";
+        const EMAILJS_TEMPLATE_ID = "ВАШ_TEMPLATE_ID";
         const EXPORT_EMAIL = "evro.blok@bk.ru";
         emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
 
@@ -420,6 +440,38 @@
             for (let m = 0; m < 60; m += 5) {
                 minuteOptions.push({ value: m, label: String(m).padStart(2, '0') });
             }
+        }
+
+        // --- ИНИЦИАЛИЗАЦИЯ ПОЛЯ ДАТЫ ---
+        function initDateField() {
+            const dateInput = document.getElementById('input-date');
+            // Устанавливаем сегодняшнюю дату по умолчанию
+            const today = new Date();
+            const todayISO = formatDateToISO(today);
+            dateInput.value = todayISO;
+            
+            // Ограничиваем максимальную дату — сегодня (нельзя выбрать будущее)
+            dateInput.max = todayISO;
+            
+            // Минимальная дата — 1 год назад (чтобы не выбирать слишком старые даты)
+            const yearAgo = new Date();
+            yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+            dateInput.min = formatDateToISO(yearAgo);
+        }
+
+        // Преобразование Date в ISO формат "ГГГГ-ММ-ДД" (для input type="date")
+        function formatDateToISO(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Преобразование ISO формата "ГГГГ-ММ-ДД" в русский "ДД.ММ.ГГГГ" (для Firebase)
+        function formatDateForFirebase(isoDate) {
+            if (!isoDate) return '';
+            const [year, month, day] = isoDate.split('-');
+            return `${day}.${month}.${year}`;
         }
 
         function openCustomSelect(type) {
@@ -769,7 +821,9 @@
 
         function submitDowntime() {
             const reason = document.getElementById('input-reason').value.trim();
-            if (!selectedShop || !selectedEquipment || !reason) {
+            const dateISO = document.getElementById('input-date').value;
+            
+            if (!selectedShop || !selectedEquipment || !dateISO || !reason) {
                 alert('Заполните все поля!');
                 return;
             }
@@ -778,6 +832,10 @@
                 alert('Время начала и окончания не должны совпадать!');
                 return;
             }
+            
+            // Преобразуем дату из ISO формата в русский формат "ДД.ММ.ГГГГ"
+            const dateFormatted = formatDateForFirebase(dateISO);
+            
             const now = new Date();
             db.ref('downtime_records').push({
                 author: currentUser,
@@ -792,8 +850,10 @@
                 durationText: durationText,
                 reason: reason,
                 timestamp: now.getTime(),
-                date: now.toLocaleDateString('ru-RU')
+                date: dateFormatted  // Сохраняем в том же формате, что и раньше
             });
+            
+            // Сброс формы
             selectedShop = '';
             selectedEquipment = '';
             selectedStartHour = 8;
@@ -809,11 +869,14 @@
             document.getElementById('input-reason').value = '';
             document.getElementById('shop-select-display').classList.remove('selected');
             document.getElementById('equipment-select-display').classList.remove('selected');
+            
+            // Возвращаем сегодняшнюю дату
+            initDateField();
+            
             updateDurationHint();
-            // Принудительно убираем фокус и возвращаем кнопку
             if (document.activeElement) document.activeElement.blur();
             showSubmitButton();
-            alert('Простой зарегистрирован!\nДлительность: ' + durationText);
+            alert('Простой зарегистрирован!\nДата: ' + dateFormatted + '\nДлительность: ' + durationText);
         }
 
         const downtimeTableBody = document.getElementById('downtime-table-body');
@@ -845,7 +908,6 @@
             });
         });
 
-        // --- УЛУЧШЕННАЯ ОБРАБОТКА КЛАВИАТУРЫ ---
         function showSubmitButton() {
             const fixedBar = document.querySelector('.fixed-bottom-bar');
             const formWrapper = document.querySelector('.form-content-wrapper');
@@ -868,7 +930,6 @@
 
             let lastViewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
 
-            // Фокус на поле ввода — скрываем кнопку
             form.addEventListener('focusin', (e) => {
                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
                     hideSubmitButton();
@@ -881,7 +942,6 @@
                 }
             });
 
-            // Потеря фокуса — возвращаем кнопку
             form.addEventListener('focusout', (e) => {
                 if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
                     setTimeout(() => {
@@ -893,18 +953,13 @@
                 }
             });
 
-            // Отслеживание изменения viewport (открытие/закрытие клавиатуры)
             if (window.visualViewport) {
                 window.visualViewport.addEventListener('resize', () => {
                     const currentHeight = window.visualViewport.height;
                     const diff = currentHeight - lastViewportHeight;
-                    
-                    // Если viewport увеличился более чем на 50px — клавиатура закрылась
                     if (diff > 50) {
                         showSubmitButton();
-                    }
-                    // Если viewport уменьшился более чем на 50px — клавиатура открылась
-                    else if (diff < -50) {
+                    } else if (diff < -50) {
                         const active = document.activeElement;
                         if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
                             hideSubmitButton();
@@ -913,16 +968,13 @@
                             }, 100);
                         }
                     }
-                    
                     lastViewportHeight = currentHeight;
                 });
             }
 
-            // Клик вне полей ввода — возвращаем кнопку
             document.addEventListener('click', (e) => {
                 const target = e.target;
                 if (target.tagName !== 'INPUT' && target.tagName !== 'TEXTAREA') {
-                    // Проверяем, что клик был на вкладке формы
                     const formTab = document.getElementById('content-downtime-form');
                     if (formTab && !formTab.classList.contains('hidden')) {
                         setTimeout(() => {
@@ -935,7 +987,6 @@
                 }
             });
 
-            // Дополнительная страховка: при прокрутке формы возвращаем кнопку
             const scrollContainer = form.querySelector('.overflow-y-auto');
             if (scrollContainer) {
                 scrollContainer.addEventListener('scroll', () => {
@@ -951,6 +1002,7 @@
         showLoadingScreen();
         checkAutoLogin();
         initTimeOptions();
+        initDateField();  // ← Инициализация поля даты
         loadOptionsFromFirebase();
         updateDurationHint();
         setupKeyboardHandling();
